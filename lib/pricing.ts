@@ -14,8 +14,8 @@ export const pricingPlans = [
     note: "After the first 3 teams",
     audience: "Admin-managed leagues expanding beyond 3 teams",
     highlight: false,
-    features: ["Payment checked at auction start", "One paid slot per extra team", "Purse and squad tracking", "Team logo upload", "Player photo upload", "Reports export button"],
-    advantage: "Keep setup free, then pay only for the additional teams above 3 when the auction is ready to start."
+    features: ["Payment checked while adding the 4th team", "One paid slot per extra team", "Purse and squad tracking", "Team logo upload", "Player photo upload", "Reports export button"],
+    advantage: "The first 3 admin-managed teams are included. The 4th and later teams unlock through the payment step before they are saved."
   },
   {
     name: "Owner Self Bidding",
@@ -42,14 +42,14 @@ export const demoOffer = {
   price: "Free to start",
   note: "Billing depends on tournament management mode.",
   features: ["Admin managed: 3 teams free", "Admin extra team: Rs. 99", "Owner self bidding: Rs. 499 per owner login", "QR payment record", "Admin approval before owner bidding"],
-  advantage: "Create a tournament first, choose admin-managed or owner self-bidding, then Auction Arena applies the correct payment rule at launch or owner approval."
+  advantage: "Create a tournament first, choose admin-managed or owner self-bidding, then Auction Arena applies the correct payment rule at team entry or owner approval."
 };
 
 export const planComparison = [
   ["Tournament creation", "Free", "Free", "Free", "Free"],
   ["Best use", "Admin desk bidding", "More admin teams", "Owner browser bidding", "Venue/public display"],
   ["Included free", "3 teams", "First 3 teams", "Tournament setup", "All tournaments"],
-  ["Paid trigger", "Auction start", "Auction start", "Owner approval", "No extra trigger"],
+  ["Paid trigger", "Adding 4th team", "Adding each extra team", "Owner approval", "No extra trigger"],
   ["Price", "Rs. 99 after 3 teams", "Rs. 99/team", "Rs. 499/owner login", "Included"],
   ["Payment method", "QR scan", "QR scan", "QR scan with verification", "Included"]
 ];

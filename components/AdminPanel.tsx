@@ -170,7 +170,6 @@ function AdminOverview({ onOpen, canOperate, ownedLeagueCount, isOwnerBiddingLea
 
 function OwnerApprovals() {
   const { state, actions } = useAuctionStore();
-  const [verifyingRequests, setVerifyingRequests] = useState<Record<string, boolean>>({});
   const currentAdminId = typeof window !== "undefined" ? window.localStorage.getItem(ADMIN_SESSION_KEY) : "";
   const visibleRequests = state.ownerRequests.filter((request) => {
       const league = state.leagues.find((item) => item.id === request.leagueId);
@@ -178,19 +177,6 @@ function OwnerApprovals() {
     });
   const ownerPaymentLink = makeUpiLink(499, "Auction Arena owner login");
   const ownerPaymentQr = makeQrCodeUrl(ownerPaymentLink, 180);
-
-  useEffect(() => {
-    const timers = visibleRequests
-      .filter((request) => request.paymentStatus !== "paid" && request.status === "Pending" && !verifyingRequests[request.id])
-      .map((request) => {
-        setVerifyingRequests((current) => ({ ...current, [request.id]: true }));
-        return window.setTimeout(() => {
-          actions.markOwnerRequestPaid(request.id, `OWNER-${Date.now()}`);
-          actions.setOwnerRequestStatus(request.id, "Approved");
-        }, 4200);
-      });
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [actions, verifyingRequests, visibleRequests]);
 
   return (
     <div className="glass-card overflow-hidden">
@@ -215,13 +201,16 @@ function OwnerApprovals() {
                   </div>
                   <div className="text-xs leading-5 text-arena-muted">
                     <div className="font-semibold text-arena-gold">Scan and pay Rs. 499</div>
-                    <div>{verifyingRequests[request.id] ? "Verifying payment automatically..." : "Waiting for scan confirmation..."}</div>
+                    <div>Approve only after payment is completed.</div>
                     <a href={ownerPaymentLink} className="mt-2 inline-flex rounded-full border border-arena-gold/30 bg-arena-gold/10 px-3 py-1 font-semibold text-arena-gold">Pay Now</a>
                   </div>
                 </div>
               )}
             </div>
             <div className="grid gap-2 sm:min-w-[260px]">
+              {request.paymentStatus !== "paid" && (
+                <button onClick={() => actions.markOwnerRequestPaid(request.id, `OWNER-${Date.now()}`)} className="dark-button">Payment Done</button>
+              )}
               <button disabled={request.paymentStatus !== "paid"} onClick={() => actions.setOwnerRequestStatus(request.id, "Approved")} className={`red-button ${request.paymentStatus !== "paid" ? "cursor-not-allowed opacity-50" : ""}`}>Approve Login</button>
               <button onClick={() => actions.setOwnerRequestStatus(request.id, "Rejected")} className="dark-button">Reject</button>
             </div>

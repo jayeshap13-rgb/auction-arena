@@ -50,7 +50,7 @@ export function SetupManager() {
   const [newLeagueRegistration, setNewLeagueRegistration] = useState<"Open" | "Draft">("Open");
   const [editingTeamId, setEditingTeamId] = useState("");
   const [pendingTeam, setPendingTeam] = useState<{ name: string; owner: string; logo?: string } | null>(null);
-  const [teamPaymentState, setTeamPaymentState] = useState<"idle" | "scan" | "verified">("idle");
+  const [teamPaymentState, setTeamPaymentState] = useState<"idle" | "scan">("idle");
 
   useEffect(() => {
     if (!activeLeagueOwned && ownedLeagues[0]) {
@@ -128,20 +128,19 @@ export function SetupManager() {
     setTeamLogo("");
   }, [actions]);
 
-  useEffect(() => {
-    if (teamPaymentState !== "scan" || !pendingTeam) return;
-    const id = window.setTimeout(() => {
-      const nextPaidSlots = Math.max(Number(state.league.paidTeamSlots) || 0, Math.max(1, currentLeagueTeams.length + 1 - FREE_TEAM_LIMIT));
-      actions.markLeaguePaid(`TEAM-SLOT-${Date.now()}`, nextPaidSlots);
-      setTeamPaymentState("verified");
-      window.setTimeout(() => {
-        commitTeam(pendingTeam.name, pendingTeam.owner, pendingTeam.logo);
-        setPendingTeam(null);
-        setTeamPaymentState("idle");
-      }, 700);
-    }, 4200);
-    return () => window.clearTimeout(id);
-  }, [actions, commitTeam, currentLeagueTeams.length, pendingTeam, state.league.paidTeamSlots, teamPaymentState]);
+  function confirmTeamPayment() {
+    if (!pendingTeam) return;
+    const nextPaidSlots = Math.max(Number(state.league.paidTeamSlots) || 0, Math.max(1, currentLeagueTeams.length + 1 - FREE_TEAM_LIMIT));
+    actions.markLeaguePaid(`TEAM-SLOT-${Date.now()}`, nextPaidSlots);
+    commitTeam(pendingTeam.name, pendingTeam.owner, pendingTeam.logo);
+    setPendingTeam(null);
+    setTeamPaymentState("idle");
+  }
+
+  function cancelTeamPayment() {
+    setPendingTeam(null);
+    setTeamPaymentState("idle");
+  }
 
   function addLeague() {
     if (!newLeagueName.trim()) return;
@@ -179,9 +178,9 @@ export function SetupManager() {
           <div className="mt-4 grid gap-2">
             {[
               ["1", "Create tournament", "Name, sport, visibility and management mode."],
-              ["2", "Open registration", "Let owners request access while admin reviews."],
-              ["3", "Add teams and players", "Set purse, base prices, roles and photos."],
-              ["4", "Start auction", "Set up freely. At auction start, admin-managed leagues pay Rs. 99 per team after 3. Owner-bidding leagues charge Rs. 499 per approved owner login."],
+              ["2", "Register teams", "First 3 admin-managed teams are included. The 4th and later teams open the scan-to-pay step immediately."],
+              ["3", "Build player pool", "Upload players, photos, roles, base prices and stats."],
+              ["4", "Run auction", "Share owner, spectator and projector links once the tournament is ready."],
             ].map(([step, title, body]) => (
               <div key={step} className="grid gap-3 rounded-xl border border-white/10 bg-white/5 p-3 sm:grid-cols-[34px_minmax(0,1fr)]">
                 <div className="grid h-8 w-8 place-items-center rounded-full bg-arena-red text-xs font-semibold text-white">{step}</div>
@@ -245,9 +244,9 @@ export function SetupManager() {
                 </select>
               </label>
             </div>
-            <button onClick={addLeague} className="red-button w-full">Create Tournament Free</button>
+            <button onClick={addLeague} className="red-button w-full">Create Tournament</button>
             <p className="text-xs leading-5 text-arena-muted">
-              Create and set up unlimited tournaments without payment. Admin-managed billing is checked when the auction starts. Owner-bidding login payments are checked during owner approval.
+              Admin-managed tournaments include 3 teams. Adding the 4th team opens the scan-to-pay step before that team is saved. Owner-bidding login payments are checked during owner approval.
             </p>
           </div>
         </div>
@@ -257,7 +256,7 @@ export function SetupManager() {
           <div className="gold-kicker">Tournament Details</div>
           {isAdminManagedLeague && (
             <div className="mt-3 rounded-xl border border-arena-gold/25 bg-arena-gold/10 p-3 text-sm text-arena-muted">
-              Admin-managed billing: {FREE_TEAM_LIMIT} teams free, {extraTeamsDue} extra team{extraTeamsDue === 1 ? "" : "s"} added, Rs. {setupPaymentDue} due before auction start.
+              Admin-managed billing: {FREE_TEAM_LIMIT} teams included, {extraTeamsDue} extra team{extraTeamsDue === 1 ? "" : "s"} added, Rs. {setupPaymentDue} pending for additional team slots.
             </div>
           )}
           {!isAdminManagedLeague && (
@@ -376,7 +375,8 @@ export function SetupManager() {
               <TeamSlotPayment
                 amount={ADMIN_EXTRA_TEAM_PRICE}
                 teamName={pendingTeam.name}
-                verified={teamPaymentState === "verified"}
+                onConfirm={confirmTeamPayment}
+                onCancel={cancelTeamPayment}
               />
             )}
             <input aria-label="Team name" className="input-dark" placeholder="Team name" value={teamName} onChange={(event) => setTeamName(event.target.value)} />
@@ -431,13 +431,21 @@ export function SetupManager() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   {ownedLeagues.map((item) => {
                     const active = (team.leagueIds || []).includes(item.id);
+                    const targetTeams = state.teams.filter((entry) => (entry.leagueIds || []).includes(item.id));
+                    const targetPaidSlots = Number(item.paidTeamSlots) || 0;
+                    const needsPaidSlot = !active && item.managementMode === "admin" && Math.max(0, targetTeams.length + 1 - FREE_TEAM_LIMIT) > targetPaidSlots;
                     return (
                       <button
                         key={item.id}
-                        onClick={() => actions.toggleTeamLeague(team.id, item.id)}
-                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${active ? "border-arena-red bg-arena-red/15 text-white" : "border-white/10 bg-white/5 text-arena-muted"}`}
+                        onClick={() => {
+                          if (needsPaidSlot) return;
+                          actions.toggleTeamLeague(team.id, item.id);
+                        }}
+                        disabled={needsPaidSlot}
+                        title={needsPaidSlot ? "Adding this team needs a paid team slot. Select that league and use Add Team." : item.name}
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${active ? "border-arena-red bg-arena-red/15 text-white" : needsPaidSlot ? "cursor-not-allowed border-arena-gold/25 bg-arena-gold/10 text-arena-muted opacity-60" : "border-white/10 bg-white/5 text-arena-muted"}`}
                       >
-                        {item.name}
+                        {item.name}{needsPaidSlot ? " | payment needed" : ""}
                       </button>
                     );
                   })}
@@ -452,21 +460,25 @@ export function SetupManager() {
   );
 }
 
-function TeamSlotPayment({ amount, teamName, verified }: { amount: number; teamName: string; verified: boolean }) {
+function TeamSlotPayment({ amount, teamName, onConfirm, onCancel }: { amount: number; teamName: string; onConfirm: () => void; onCancel: () => void }) {
   const paymentLink = makeUpiLink(amount, `Auction Arena team slot ${teamName}`);
   const qrCodeUrl = makeQrCodeUrl(paymentLink, 220);
   return (
     <div className="rounded-2xl border border-arena-gold/30 bg-arena-gold/10 p-4">
       <div className="gold-kicker">Team Slot Payment</div>
-      <h3 className="mt-2 text-xl font-semibold">{verified ? "Payment verified" : `Scan to add ${teamName}`}</h3>
+      <h3 className="mt-2 text-xl font-semibold">Scan to add {teamName}</h3>
       <div className="mt-4 grid gap-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center">
         <div className="rounded-2xl bg-white p-3">
           <img src={qrCodeUrl} alt="Payment QR code" className="h-40 w-40 rounded-xl" />
         </div>
         <div className="text-sm leading-6 text-arena-muted">
           <div className="text-2xl font-semibold text-arena-gold">Rs. {amount}</div>
-          <p className="mt-2">{verified ? "The team slot is unlocked and the team is being added." : "Keep this screen open. The slot unlocks automatically after payment confirmation."}</p>
-          <a href={paymentLink} className="red-button mt-4 w-full sm:w-fit">Pay Now</a>
+          <p className="mt-2">This team will not be saved until the payment step is completed. Use Pay Now on mobile or scan the QR on another device.</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <a href={paymentLink} className="dark-button w-full">Pay Now</a>
+            <button onClick={onConfirm} className="red-button w-full">Payment Done</button>
+          </div>
+          <button onClick={onCancel} className="mt-2 w-full text-sm font-semibold text-arena-muted transition hover:text-white">Cancel</button>
         </div>
       </div>
     </div>
