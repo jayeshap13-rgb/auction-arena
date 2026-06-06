@@ -12,10 +12,11 @@ export function OwnerGate({ leagueId: scopedLeagueId }: { leagueId?: string }) {
   const router = useRouter();
   const { state, actions } = useAuctionStore();
   const auth = useSupabaseAuth("owner");
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "reset">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
   const [message, setMessage] = useState("");
   const [ownerId, setOwnerId] = useState("");
   const [activeEntry, setActiveEntry] = useState<{ leagueId: string; teamId: string } | null>(null);
@@ -115,6 +116,33 @@ export function OwnerGate({ leagueId: scopedLeagueId }: { leagueId?: string }) {
     setMessage("");
   }
 
+  async function requestReset() {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setMessage("Enter your registered owner email.");
+      return;
+    }
+    if (auth.enabled) {
+      const result = await auth.requestPasswordReset(cleanEmail);
+      setMessage(result.message || (result.ok ? "Password reset link sent. Check your email inbox." : "Could not send reset email."));
+      return;
+    }
+    const user = state.ownerUsers.find((item) => item.email.toLowerCase() === cleanEmail);
+    if (!user) {
+      setMessage("No owner account found with this email in this browser.");
+      return;
+    }
+    if (resetPassword.trim().length < 6) {
+      setMessage("Enter a new password with at least 6 characters.");
+      return;
+    }
+    actions.updateOwnerPassword(cleanEmail, resetPassword);
+    setMode("login");
+    setPassword("");
+    setResetPassword("");
+    setMessage("Password reset. Login with your new password.");
+  }
+
   async function logout() {
     if (auth.enabled) await auth.signOut();
     window.localStorage.removeItem(SESSION_KEY);
@@ -184,16 +212,37 @@ export function OwnerGate({ leagueId: scopedLeagueId }: { leagueId?: string }) {
     return (
       <div className="mx-auto max-w-2xl">
         <div className="glass-card p-4 sm:p-6">
-          <div className="gold-kicker">Owner Account</div>
-          <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">{mode === "login" ? "Login as team owner" : "Create owner account"}</h2>
+          <div className="gold-kicker">{mode === "reset" ? "Owner Password Reset" : "Owner Account"}</div>
+          <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">{mode === "login" ? "Login as team owner" : mode === "signup" ? "Create owner account" : "Recover your owner login"}</h2>
           <p className="mt-3 text-sm text-arena-muted">
-            {auth.enabled ? "Secure Supabase login is active. Owners still need admin approval for each league." : "Owners need an account before requesting access to any league."}
+            {auth.enabled
+              ? "Secure Supabase login is active. Owners still need admin approval for each league."
+              : mode === "reset"
+              ? "Enter your saved owner email. Live backend mode sends a secure email link; demo mode resets the browser account here."
+              : "Owners need an account before requesting access to any league."}
           </p>
           <div className="mt-6 grid gap-4">
             {mode === "signup" && <input aria-label="Owner name" className="input-dark" placeholder="Owner name" value={name} onChange={(event) => setName(event.target.value)} />}
             <input aria-label="Owner email" className="input-dark" placeholder="Owner email" value={email} onChange={(event) => setEmail(event.target.value)} />
-            <input aria-label="Owner password" className="input-dark" type="password" placeholder="Owner password" value={password} onChange={(event) => setPassword(event.target.value)} />
-            <button onClick={mode === "login" ? login : signup} className="red-button">{mode === "login" ? "Login" : "Create Account"}</button>
+            {mode !== "reset" && <input aria-label="Owner password" className="input-dark" type="password" placeholder="Owner password" value={password} onChange={(event) => setPassword(event.target.value)} />}
+            {mode === "reset" && !auth.enabled && (
+              <input
+                aria-label="New owner password"
+                className="input-dark"
+                type="password"
+                placeholder="New password"
+                value={resetPassword}
+                onChange={(event) => setResetPassword(event.target.value)}
+              />
+            )}
+            <button onClick={mode === "login" ? login : mode === "signup" ? signup : requestReset} className="red-button">
+              {mode === "login" ? "Login" : mode === "signup" ? "Create Account" : auth.enabled ? "Send Reset Email" : "Reset Password"}
+            </button>
+            {mode === "login" && (
+              <button onClick={() => { setMode("reset"); setMessage(""); setPassword(""); }} className="text-center text-sm font-semibold text-arena-gold transition hover:text-white">
+                Forgot password?
+              </button>
+            )}
             <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMessage(""); }} className="dark-button">
               {mode === "login" ? "Create new owner account" : "Already have an account"}
             </button>

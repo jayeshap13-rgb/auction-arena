@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { UserRole } from "@/lib/supabaseTypes";
 import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
+import { absoluteAppUrl } from "@/lib/routes";
 
 type Profile = {
   id: string;
@@ -121,6 +122,25 @@ export function useSupabaseAuth(requiredRole?: UserRole) {
     setProfile(null);
   }
 
+  async function requestPasswordReset(email: string): Promise<AuthResult> {
+    if (!client) return { ok: false, message: "Supabase is not configured." };
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) return { ok: false, message: "Enter your registered email address." };
+    const { error } = await client.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: absoluteAppUrl("/reset-password")
+    });
+    if (error) return { ok: false, message: error.message };
+    return { ok: true, message: "Password reset link sent. Check your email inbox." };
+  }
+
+  async function updatePassword(password: string): Promise<AuthResult> {
+    if (!client) return { ok: false, message: "Supabase is not configured." };
+    if (password.trim().length < 6) return { ok: false, message: "Use at least 6 characters for the new password." };
+    const { error } = await client.auth.updateUser({ password });
+    if (error) return { ok: false, message: error.message };
+    return { ok: true, message: "Password updated. You can login with the new password." };
+  }
+
   return {
     enabled,
     loading,
@@ -129,6 +149,8 @@ export function useSupabaseAuth(requiredRole?: UserRole) {
     signIn,
     signUp,
     signOut,
+    requestPasswordReset,
+    updatePassword,
     refresh: loadProfile
   };
 }

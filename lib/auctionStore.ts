@@ -473,6 +473,18 @@ export function useAuctionStore() {
         adminUsers: current.adminUsers.map((admin) => admin.id === adminId ? { ...admin, role } : admin)
       }));
     },
+    updateAdminPassword(email: string, password: string) {
+      update((current) => ({
+        ...current,
+        adminUsers: current.adminUsers.map((admin) => admin.email.toLowerCase() === email.trim().toLowerCase() ? { ...admin, password } : admin)
+      }));
+    },
+    updateOwnerPassword(email: string, password: string) {
+      update((current) => ({
+        ...current,
+        ownerUsers: current.ownerUsers.map((owner) => owner.email.toLowerCase() === email.trim().toLowerCase() ? { ...owner, password } : owner)
+      }));
+    },
     requestOwnerAccess(teamId: string, owner: string, ownerUserId?: string, ownerEmail?: string, leagueId?: string) {
       update((current) => {
         const targetLeagueId = leagueId || current.currentLeagueId;

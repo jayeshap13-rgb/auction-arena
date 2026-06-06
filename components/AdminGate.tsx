@@ -11,10 +11,11 @@ const ADMIN_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 export function AdminGate({ children }: { children: ReactNode }) {
   const { state, actions } = useAuctionStore();
   const auth = useSupabaseAuth("admin");
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "reset">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
   const [error, setError] = useState("");
   const [sessionId, setSessionId] = useState("");
 
@@ -104,6 +105,33 @@ export function AdminGate({ children }: { children: ReactNode }) {
     setName("");
   }
 
+  async function requestReset() {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setError("Enter your registered admin email.");
+      return;
+    }
+    if (auth.enabled) {
+      const result = await auth.requestPasswordReset(cleanEmail);
+      setError(result.message || (result.ok ? "Password reset link sent. Check your email inbox." : "Could not send reset email."));
+      return;
+    }
+    const admin = state.adminUsers.find((item) => item.email.toLowerCase() === cleanEmail);
+    if (!admin) {
+      setError("No admin account found with this email in this browser.");
+      return;
+    }
+    if (resetPassword.trim().length < 6) {
+      setError("Enter a new password with at least 6 characters.");
+      return;
+    }
+    actions.updateAdminPassword(cleanEmail, resetPassword);
+    setMode("login");
+    setPassword("");
+    setResetPassword("");
+    setError("Password reset. Login with your new password.");
+  }
+
   async function lock() {
     if (auth.enabled) await auth.signOut();
     window.localStorage.removeItem(ADMIN_SESSION_KEY);
@@ -180,13 +208,15 @@ export function AdminGate({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto grid min-h-[52vh] max-w-xl place-items-center">
       <div className="glass-card w-full p-4 sm:p-6">
-        <div className="gold-kicker">{mode === "login" ? "Admin Login" : "Create Admin Account"}</div>
-        <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">{mode === "login" ? "Sign in to manage auctions" : "Start hosting your leagues"}</h2>
+        <div className="gold-kicker">{mode === "login" ? "Admin Login" : mode === "signup" ? "Create Admin Account" : "Reset Admin Password"}</div>
+        <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">{mode === "login" ? "Sign in to manage auctions" : mode === "signup" ? "Start hosting your leagues" : "Recover your admin access"}</h2>
         <p className="mt-3 text-sm text-arena-muted">
           {auth.enabled
             ? "Secure Supabase login is active. Your admin profile is stored centrally."
             : mode === "login"
             ? "Admins only see and edit leagues they create."
+            : mode === "reset"
+            ? "Enter your saved admin email. Live backend mode sends a secure email link; demo mode resets the browser account here."
             : "Any organizer can create an admin account and manage their own auction leagues."}
         </p>
         <div className="mt-6 space-y-3">
@@ -214,6 +244,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
             placeholder="Admin password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            hidden={mode === "reset"}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 if (mode === "login") submit();
@@ -221,16 +252,37 @@ export function AdminGate({ children }: { children: ReactNode }) {
               }
             }}
           />
+          {mode === "reset" && !auth.enabled && (
+            <input
+              aria-label="New admin password"
+              className="input-dark"
+              type="password"
+              placeholder="New password"
+              value={resetPassword}
+              onChange={(event) => setResetPassword(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void requestReset();
+              }}
+            />
+          )}
           {error && <p className={`text-sm ${error.includes("created") ? "text-arena-gold" : "text-red-200"}`}>{error}</p>}
           {mode === "login" ? (
             <button onClick={submit} className="red-button w-full">Login as Admin</button>
-          ) : (
+          ) : mode === "signup" ? (
             <button onClick={createAdmin} className="red-button w-full">Create Admin Account</button>
+          ) : (
+            <button onClick={requestReset} className="red-button w-full">{auth.enabled ? "Send Reset Email" : "Reset Password"}</button>
+          )}
+          {mode === "login" && (
+            <button onClick={() => { setMode("reset"); setError(""); setPassword(""); }} className="w-full text-center text-sm font-semibold text-arena-gold transition hover:text-white">
+              Forgot password?
+            </button>
           )}
           <button
             onClick={() => {
               setMode(mode === "login" ? "signup" : "login");
               setError("");
+              setResetPassword("");
               if (mode === "signup") setEmail("");
             }}
             className="dark-button w-full"
