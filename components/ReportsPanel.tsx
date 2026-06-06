@@ -3,9 +3,9 @@
 import { useAuctionStore } from "@/lib/auctionStore";
 
 export function ReportsPanel() {
-  const { state, leagueTeams } = useAuctionStore();
-  const sold = state.players.filter((player) => player.status === "Sold");
-  const unsold = state.players.filter((player) => player.status === "Unsold");
+  const { state, leagueTeams, leaguePlayers } = useAuctionStore();
+  const sold = leaguePlayers.filter((player) => player.status === "Sold");
+  const unsold = leaguePlayers.filter((player) => player.status === "Unsold");
 
   function downloadReport() {
     const rows = [

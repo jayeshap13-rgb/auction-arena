@@ -172,6 +172,7 @@ function withNormalizedState(raw: Partial<AuctionState>): AuctionState {
   }));
   const players = (Array.isArray(raw.players) ? raw.players : base.players).map((player) => ({
     ...player,
+    leagueId: player.leagueId || currentLeagueId,
     approvalStatus: player.approvalStatus || "Approved" as const,
     submittedBy: player.submittedBy || "Admin roster"
   }));
@@ -253,9 +254,14 @@ export function useAuctionStore() {
     return () => window.clearInterval(id);
   }, [state.isRunning, state.timer]);
 
+  const leaguePlayers = useMemo(
+    () => state.players.filter((player) => (player.leagueId || state.currentLeagueId) === state.currentLeagueId),
+    [state.currentLeagueId, state.players]
+  );
+
   const currentPlayer = useMemo(
-    () => state.players.find((player) => player.id === state.currentPlayerId) || state.players[0] || EMPTY_PLAYER,
-    [state.currentPlayerId, state.players]
+    () => leaguePlayers.find((player) => player.id === state.currentPlayerId) || leaguePlayers[0] || EMPTY_PLAYER,
+    [leaguePlayers, state.currentPlayerId]
   );
 
   const currentBids = useMemo(
@@ -364,8 +370,10 @@ export function useAuctionStore() {
     },
     addPlayer(player: Omit<Player, "id" | "status" | "photo"> & { photo?: string }) {
       update((current) => {
-        const nextPlayer = { ...player, id: uid("player"), status: current.players.length ? "Queued" as const : "Under Auction" as const, approvalStatus: "Approved" as const, submittedBy: "Admin roster", photo: player.photo || player.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() };
-        return { ...current, players: [...current.players, nextPlayer], currentPlayerId: current.currentPlayerId || nextPlayer.id };
+        if (!current.leagues.some((item) => item.id === current.currentLeagueId)) return current;
+        const leaguePlayerCount = current.players.filter((item) => (item.leagueId || current.currentLeagueId) === current.currentLeagueId).length;
+        const nextPlayer = { ...player, id: uid("player"), leagueId: current.currentLeagueId, status: leaguePlayerCount ? "Queued" as const : "Under Auction" as const, approvalStatus: "Approved" as const, submittedBy: "Admin roster", photo: player.photo || player.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() };
+        return { ...current, players: [...current.players, nextPlayer], currentPlayerId: leaguePlayerCount ? current.currentPlayerId : nextPlayer.id };
       });
     },
     setPlayerApproval(playerId: string, approvalStatus: NonNullable<Player["approvalStatus"]>) {
@@ -493,7 +501,8 @@ export function useAuctionStore() {
     },
     start() {
       update((current) => {
-        if (!current.leagues.some((item) => item.id === current.currentLeagueId) || !current.players.length || !current.teams.length) return current;
+        const hasPlayers = current.players.some((player) => (player.leagueId || current.currentLeagueId) === current.currentLeagueId);
+        if (!current.leagues.some((item) => item.id === current.currentLeagueId) || !hasPlayers || !current.teams.length) return current;
         const leagueTeamCount = current.teams.filter((item) => (item.leagueIds || []).includes(current.currentLeagueId)).length;
         const extraTeamsDue = current.league.managementMode === "admin" ? Math.max(0, leagueTeamCount - FREE_TEAM_LIMIT) : 0;
         if (extraTeamsDue > (Number(current.league.paidTeamSlots) || 0)) return current;
@@ -570,10 +579,12 @@ export function useAuctionStore() {
     },
     nextLot(includeUnsold = false) {
       update((current) => {
-        if (!current.players.length) return current;
-        const currentIndex = current.players.findIndex((player) => player.id === current.currentPlayerId);
-        const ordered = [...current.players.slice(currentIndex + 1), ...current.players.slice(0, currentIndex + 1)];
-        const next = ordered.find((player) => player.status === "Queued" || (includeUnsold && player.status === "Unsold")) || current.players[0];
+        const leaguePlayers = current.players.filter((player) => (player.leagueId || current.currentLeagueId) === current.currentLeagueId);
+        if (!leaguePlayers.length) return current;
+        const currentIndex = leaguePlayers.findIndex((player) => player.id === current.currentPlayerId);
+        const ordered = [...leaguePlayers.slice(currentIndex + 1), ...leaguePlayers.slice(0, currentIndex + 1)];
+        const next = ordered.find((player) => player.status === "Queued" || (includeUnsold && player.status === "Unsold")) || leaguePlayers[0];
+        if (!next) return current;
         return {
           ...current,
           currentPlayerId: next.id,
@@ -588,5 +599,5 @@ export function useAuctionStore() {
     }
   }), [update]);
 
-  return { ready, state, leagueTeams, currentPlayer, currentBid, currentBids, highestBid, leader, actions };
+  return { ready, state, leagueTeams, leaguePlayers, currentPlayer, currentBid, currentBids, highestBid, leader, actions };
 }

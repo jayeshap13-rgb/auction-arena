@@ -5,14 +5,14 @@ import { useAuctionStore } from "@/lib/auctionStore";
 import { TeamPurse } from "./ui";
 
 export function AdminDashboard() {
-  const { state, currentPlayer, currentBid, leader, actions } = useAuctionStore();
-  const sold = state.players.filter((player) => player.status === "Sold").length;
-  const unsold = state.players.filter((player) => player.status === "Unsold").length;
-  const queued = state.players.filter((player) => player.status === "Queued").length;
+  const { state, leagueTeams, leaguePlayers, currentPlayer, currentBid, leader, actions } = useAuctionStore();
+  const sold = leaguePlayers.filter((player) => player.status === "Sold").length;
+  const unsold = leaguePlayers.filter((player) => player.status === "Unsold").length;
+  const queued = leaguePlayers.filter((player) => player.status === "Queued").length;
 
   const modules = [
-    ["Tournament Setup", "Teams, purse, sport and rules", "/setup", `${state.teams.length} teams`],
-    ["Player Pool", "Add, upload, wishlist and send lots", "/players", `${state.players.length} players`],
+    ["Tournament Setup", "Teams, purse, sport and rules", "/setup", `${leagueTeams.length} teams`],
+    ["Player Pool", "Add, upload, wishlist and send lots", "/players", `${leaguePlayers.length} players`],
     ["Live Auction", "Bidding, timer, sold and unsold controls", "/auction", state.league.status],
     ["Reports", "Export squads, purse and bid history", "/reports", `${state.bids.length} bids`]
   ];
@@ -87,7 +87,7 @@ export function AdminDashboard() {
       <aside className="glass-card p-5">
         <div className="gold-kicker">Purse Monitor</div>
         <div className="mt-4 space-y-3">
-          {state.teams.map((team) => <TeamPurse key={team.id} team={team} />)}
+          {leagueTeams.map((team) => <TeamPurse key={team.id} team={team} />)}
         </div>
       </aside>
     </div>

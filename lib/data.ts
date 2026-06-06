@@ -24,6 +24,7 @@ export type Player = {
   soldTo?: string;
   soldPrice?: number;
   wishlist?: boolean;
+  leagueId?: string;
   approvalStatus?: "Pending" | "Approved" | "Rejected";
   submittedBy?: string;
 };

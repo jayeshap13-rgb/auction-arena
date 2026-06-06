@@ -6,7 +6,7 @@ import { prepareImageUpload } from "@/lib/imageUpload";
 import { PlayerCard } from "./ui";
 
 export function PlayerManager() {
-  const { state, currentPlayer, actions } = useAuctionStore();
+  const { state, leaguePlayers, currentPlayer, actions } = useAuctionStore();
   const [name, setName] = useState("");
   const [role, setRole] = useState("All-rounder");
   const [category, setCategory] = useState("A");
@@ -28,7 +28,14 @@ export function PlayerManager() {
   }
 
   function addPlayer() {
-    if (!name.trim()) return;
+    if (!state.leagues.some((league) => league.id === state.currentLeagueId)) {
+      setPhotoMessage("Create or select a league before adding players.");
+      return;
+    }
+    if (!name.trim()) {
+      setPhotoMessage("Enter a player name first.");
+      return;
+    }
     actions.addPlayer({
       name: name.trim(),
       role,
@@ -41,6 +48,7 @@ export function PlayerManager() {
     setName("");
     setBasePrice(50);
     setPhoto("");
+    setPhotoMessage("Player added to this league.");
   }
 
   function addSampleBatch() {
@@ -84,8 +92,13 @@ export function PlayerManager() {
         </div>
         <button onClick={addPlayer} className="red-button mt-4">Add Player</button>
       </div>
+      {leaguePlayers.length === 0 && (
+        <div className="glass-card p-5 text-sm text-arena-muted">
+          No players have been added to {state.league.name} yet. Add the first player above or use the sample sheet button.
+        </div>
+      )}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {state.players.map((player) => (
+        {leaguePlayers.map((player) => (
           <div key={player.id} className="relative">
             <button
               onClick={() => actions.toggleWishlist(player.id)}

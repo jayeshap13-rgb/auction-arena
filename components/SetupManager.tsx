@@ -10,7 +10,7 @@ const ADMIN_EXTRA_TEAM_PRICE = 99;
 const OWNER_LOGIN_PRICE = 499;
 
 export function SetupManager() {
-  const { state, actions } = useAuctionStore();
+  const { state, leaguePlayers, actions } = useAuctionStore();
   const currentAdminId = typeof window !== "undefined" ? window.localStorage.getItem(ADMIN_SESSION_KEY) : "";
   const currentAdmin = state.adminUsers.find((item) => item.id === currentAdminId);
   const ownedLeagues = useMemo(
@@ -345,7 +345,7 @@ export function SetupManager() {
               <ChecklistItem label="Registration open" done={state.league.registrationStatus === "Open"} />
               <ChecklistItem label={isAdminManagedLeague ? `Included teams ${Math.min(currentLeagueTeams.length, FREE_TEAM_LIMIT)}/${FREE_TEAM_LIMIT}` : `Owner login Rs. ${OWNER_LOGIN_PRICE}`} done={!isAdminManagedLeague || currentLeagueTeams.length >= FREE_TEAM_LIMIT} />
               <ChecklistItem label={isAdminManagedLeague ? `Start payment due Rs. ${setupPaymentDue}` : "Owner approvals billable"} done={!isAdminManagedLeague || setupPaymentDue === 0} />
-              <ChecklistItem label="Players ready" done={state.players.length > 0} />
+              <ChecklistItem label="Players ready" done={leaguePlayers.length > 0} />
             </div>
           </div>
         )}

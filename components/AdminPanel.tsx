@@ -69,15 +69,29 @@ export function AdminPanel() {
       {tab === "auction" && canOperate && <AuctionRoom mode="admin" allowAdminBids={!isOwnerBiddingLeague} />}
       {tab === "setup" && <SetupManager />}
       {tab === "players" && activeLeagueOwned && <PlayerManager />}
+      {tab === "players" && !activeLeagueOwned && <EmptyAdminState title="Select or create a league first" body="Players belong to a specific league. Open Setup, create a tournament, then return here to add players." onOpenSetup={() => setTab("setup")} />}
       {tab === "reports" && activeLeagueOwned && <ReportsPanel />}
       {tab === "owners" && <OwnerApprovals />}
     </div>
   );
 }
 
+function EmptyAdminState({ title, body, onOpenSetup }: { title: string; body: string; onOpenSetup: () => void }) {
+  return (
+    <div className="glass-card grid min-h-[320px] place-items-center p-6 text-center">
+      <div className="max-w-lg">
+        <div className="gold-kicker">Setup Required</div>
+        <h2 className="mt-3 text-2xl font-semibold">{title}</h2>
+        <p className="mt-3 text-sm leading-7 text-arena-muted">{body}</p>
+        <button onClick={onOpenSetup} className="red-button mt-5">Open Setup</button>
+      </div>
+    </div>
+  );
+}
+
 function AdminOverview({ onOpen, canOperate, ownedLeagueCount, isOwnerBiddingLeague }: { onOpen: (tab: AdminTab) => void; canOperate: boolean; ownedLeagueCount: number; isOwnerBiddingLeague: boolean }) {
-  const { state, leagueTeams, currentPlayer, currentBid, leader, actions } = useAuctionStore();
-  const sold = state.players.filter((player) => player.status === "Sold").length;
+  const { state, leagueTeams, leaguePlayers, currentPlayer, currentBid, leader, actions } = useAuctionStore();
+  const sold = leaguePlayers.filter((player) => player.status === "Sold").length;
   const pendingOwners = state.ownerRequests.filter((request) => request.status === "Pending").length;
 
   return (

@@ -13,7 +13,7 @@ const ADMIN_EXTRA_TEAM_PRICE = 99;
 const UPI_ID = "auctionarena@upi";
 
 export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true }: { mode?: Mode; ownerTeamId?: string; allowAdminBids?: boolean }) {
-  const { state, leagueTeams, currentPlayer, currentBid, currentBids, highestBid, leader, actions } = useAuctionStore();
+  const { state, leagueTeams, leaguePlayers, currentPlayer, currentBid, currentBids, highestBid, leader, actions } = useAuctionStore();
   const [selectedTeam, setSelectedTeam] = useState(state.teams[0]?.id || "");
   const [ownerTeam, setOwnerTeam] = useState(state.teams[0]?.id || "");
   const [bidAmount, setBidAmount] = useState(currentBid + 10);
@@ -25,9 +25,9 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
   const bidIncrement = Number(state.league.bidIncrement) || 10;
   const nextBid = Math.max(Number(bidAmount) || 0, currentBid + bidIncrement);
   const canBid = currentPlayer.status === "Under Auction" && activeTeam && nextBid <= activeTeam.purse - activeTeam.spent;
-  const soldPlayers = state.players.filter((player) => player.status === "Sold");
-  const unsoldPlayers = state.players.filter((player) => player.status === "Unsold");
-  const wishlist = state.players.filter((player) => player.wishlist);
+  const soldPlayers = leaguePlayers.filter((player) => player.status === "Sold");
+  const unsoldPlayers = leaguePlayers.filter((player) => player.status === "Unsold");
+  const wishlist = leaguePlayers.filter((player) => player.wishlist);
   const leaderboard = useMemo(() => [...leagueTeams].sort((a, b) => b.spent - a.spent), [leagueTeams]);
   const adminExtraTeams = state.league.managementMode === "admin" ? Math.max(0, leagueTeams.length - FREE_TEAM_LIMIT) : 0;
   const unpaidAdminExtraTeams = Math.max(0, adminExtraTeams - (Number(state.league.paidTeamSlots) || 0));
