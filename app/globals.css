@@ -1,0 +1,496 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --page-bg:
+    radial-gradient(circle at 18% 12%, rgba(34, 211, 166, 0.18), transparent 26rem),
+    radial-gradient(circle at 86% 6%, rgba(214, 169, 74, 0.13), transparent 24rem),
+    linear-gradient(135deg, #061018 0%, #0b1620 52%, #07131b 100%);
+  --page-text: #f8fbfc;
+  --muted: #8ea0ae;
+  --panel: rgba(255, 255, 255, 0.07);
+  --panel-strong: rgba(8, 24, 33, 0.78);
+  --border: rgba(255, 255, 255, 0.12);
+  --accent: #0e9f6e;
+  --accent-2: #22d3a6;
+  --gold: #d6a94a;
+  --grid: rgba(255, 255, 255, 0.035);
+  --nav-bg: rgba(6, 16, 24, 0.74);
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+}
+
+:root.theme-light {
+  color-scheme: light;
+  --page-bg:
+    radial-gradient(circle at 12% 8%, rgba(14, 159, 110, 0.18), transparent 23rem),
+    radial-gradient(circle at 90% 2%, rgba(214, 169, 74, 0.22), transparent 21rem),
+    linear-gradient(135deg, #f6f8f5 0%, #eef4f1 48%, #f9f6ee 100%);
+  --page-text: #10202a;
+  --muted: #5f7280;
+  --panel: rgba(255, 255, 255, 0.76);
+  --panel-strong: rgba(255, 255, 255, 0.88);
+  --border: rgba(16, 32, 42, 0.12);
+  --accent: #047857;
+  --accent-2: #10b981;
+  --gold: #a97616;
+  --grid: rgba(16, 32, 42, 0.04);
+  --nav-bg: rgba(255, 255, 255, 0.78);
+  --shadow: 0 24px 70px rgba(16, 32, 42, 0.13);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--page-bg);
+  color: var(--page-text);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: linear-gradient(to bottom, black, transparent 82%);
+}
+
+.brand-logo {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+}
+
+.brand-logo-light,
+.brand-logo-dark {
+  transition: opacity 180ms ease;
+}
+
+.brand-logo-dark {
+  opacity: 0;
+}
+
+:root.theme-dark .brand-logo-light {
+  opacity: 0;
+}
+
+:root.theme-dark .brand-logo-dark {
+  opacity: 1;
+}
+
+@layer components {
+  .arena-shell {
+    @apply relative min-h-screen overflow-x-hidden;
+  }
+
+  .glass-card {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    box-shadow: var(--shadow);
+    @apply rounded-2xl backdrop-blur-xl;
+  }
+
+  .red-card {
+    border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), var(--panel), color-mix(in srgb, var(--gold) 8%, transparent));
+    box-shadow: 0 0 34px color-mix(in srgb, var(--accent-2) 22%, transparent);
+    @apply rounded-2xl backdrop-blur-xl;
+  }
+
+  .gold-kicker {
+    color: var(--gold);
+    @apply text-xs font-semibold uppercase tracking-[0.22em];
+  }
+
+  .section-pad {
+    @apply px-4 py-14 sm:px-6 lg:px-8;
+  }
+
+  .container-x {
+    @apply mx-auto w-full max-w-7xl;
+  }
+
+  .red-button {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white;
+    box-shadow: 0 0 34px color-mix(in srgb, var(--accent-2) 28%, transparent);
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl px-5 py-3 text-center text-sm font-semibold tracking-wide transition hover:-translate-y-0.5 sm:rounded-full;
+  }
+
+  .dark-button {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--page-text);
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl px-5 py-3 text-center text-sm font-medium transition hover:brightness-105 sm:rounded-full;
+  }
+
+  .metric-card {
+    border: 1px solid var(--border);
+    background: var(--panel-strong);
+    @apply rounded-xl p-4;
+  }
+
+  .input-dark {
+    border: 1px solid var(--border);
+    background: var(--panel-strong);
+    color: var(--page-text);
+    @apply min-h-11 w-full rounded-xl px-4 text-sm outline-none transition placeholder:text-arena-muted focus:ring-4;
+    --tw-ring-color: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+
+  .theme-toggle {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+    @apply inline-flex min-h-10 shrink-0 items-center gap-1 rounded-full p-1 text-xs font-semibold sm:min-h-11;
+  }
+
+  .theme-toggle span {
+    @apply rounded-full px-3 py-1 transition;
+  }
+
+  .theme-toggle .active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white;
+  }
+
+  .mobile-nav-link {
+    border: 1px solid var(--border);
+    color: var(--muted);
+    @apply flex min-h-[38px] min-w-[82px] shrink-0 items-center justify-center rounded-full px-3 text-center text-[11px] font-semibold transition;
+  }
+
+  .mobile-nav-scroll {
+    scrollbar-width: none;
+    @apply flex gap-2 overflow-x-auto overscroll-x-contain scroll-smooth pb-1;
+  }
+
+  .mobile-nav-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.arena-shell {
+  color: var(--page-text);
+}
+
+.arena-shell header {
+  border-color: var(--border) !important;
+  background: var(--nav-bg) !important;
+}
+
+.arena-shell section > .border-b,
+.arena-shell .border-b,
+.arena-shell .border-t,
+.arena-shell .border,
+.arena-shell table tr {
+  border-color: var(--border) !important;
+}
+
+.arena-shell .bg-black\/70,
+.arena-shell .bg-black\/60,
+.arena-shell .bg-black\/45,
+.arena-shell .bg-black\/35,
+.arena-shell .bg-black\/30,
+.arena-shell .bg-white\/5,
+.arena-shell .bg-white\/10,
+.arena-shell .bg-white\/\[0\.055\],
+.arena-shell .bg-white\/\[0\.065\] {
+  background-color: var(--panel) !important;
+}
+
+.arena-shell .text-white,
+.arena-shell .hover\:text-white:hover {
+  color: var(--page-text) !important;
+}
+
+.arena-shell .text-arena-muted {
+  color: var(--muted) !important;
+}
+
+.arena-shell .text-arena-gold {
+  color: var(--gold) !important;
+}
+
+.arena-shell .border-arena-red\/30,
+.arena-shell .border-arena-red\/40,
+.arena-shell .border-arena-gold\/20,
+.arena-shell .border-arena-gold\/30,
+.arena-shell .border-white\/10,
+.arena-shell .border-white\/15 {
+  border-color: var(--border) !important;
+}
+
+.arena-shell .bg-arena-red,
+.arena-shell .bg-arena-red\/10,
+.arena-shell .bg-arena-red\/15,
+.arena-shell .bg-arena-red\/25,
+.arena-shell .bg-arena-gold\/10,
+.arena-shell .bg-arena-gold\/15,
+.arena-shell .bg-arena-gold\/20 {
+  background-color: color-mix(in srgb, var(--accent) 14%, transparent) !important;
+}
+
+.arena-shell .text-red-100,
+.arena-shell .text-red-200 {
+  color: color-mix(in srgb, var(--accent-2) 76%, var(--page-text)) !important;
+}
+
+.arena-shell .from-arena-red,
+.arena-shell .from-arena-red\/80,
+.arena-shell .to-arena-neon,
+.arena-shell .to-arena-gold\/80 {
+  --tw-gradient-from: var(--accent) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: var(--accent-2) var(--tw-gradient-to-position) !important;
+}
+
+:root.theme-light .projector {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(16, 185, 129, 0.18), transparent 26rem),
+    linear-gradient(135deg, #f7faf7, #eaf3ef) !important;
+  color: var(--page-text) !important;
+}
+
+.projector .theme-toggle {
+  background: var(--panel-strong);
+}
+
+@layer utilities {
+  .single-line {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}
+
+.arena-shell p,
+.glass-card p,
+.red-card p {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.arena-shell h1 {
+  line-height: 1.05;
+}
+
+.arena-shell p {
+  line-height: 1.5;
+}
+
+.arena-shell h1,
+.arena-shell h2,
+.arena-shell h3,
+.arena-shell a,
+.arena-shell button,
+.arena-shell label,
+.arena-shell th,
+.arena-shell td,
+.gold-kicker,
+.metric-card * {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.arena-shell button,
+.arena-shell a {
+  touch-action: manipulation;
+}
+
+.arena-shell button {
+  overflow-wrap: normal;
+}
+
+.container-x {
+  min-width: 0;
+}
+
+.glass-card,
+.red-card,
+.metric-card {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.glass-card *,
+.red-card *,
+.metric-card * {
+  min-width: 0;
+}
+
+.grid,
+.flex {
+  min-width: 0;
+}
+
+.text-arena-muted {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  body::before {
+    background-size: 32px 32px;
+  }
+
+  .glass-card,
+  .red-card {
+    border-radius: 14px;
+  }
+
+  .glass-card,
+  .red-card {
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
+  }
+
+  .metric-card {
+    padding: 0.75rem;
+  }
+
+  .input-dark {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .section-pad {
+    padding: 2.25rem 0.75rem;
+  }
+
+  .gold-kicker {
+    font-size: 0.65rem;
+    letter-spacing: 0.16em;
+  }
+
+  .arena-shell h1 {
+    font-size: clamp(1.55rem, 7vw, 2.4rem);
+  }
+
+  .arena-shell h2 {
+    font-size: clamp(1.25rem, 5vw, 1.8rem);
+  }
+
+  .arena-shell p,
+  .arena-shell a,
+  .arena-shell button {
+    font-size: 0.875rem;
+  }
+
+  .arena-shell .red-button,
+  .arena-shell .dark-button {
+    width: 100%;
+    min-height: 48px;
+    padding-inline: 0.95rem;
+  }
+
+  .arena-shell .theme-toggle,
+  .arena-shell .mobile-nav-link {
+    width: auto;
+  }
+
+  .mobile-nav-link {
+    font-size: 0.68rem !important;
+  }
+
+  input[type="file"] {
+    max-width: 100%;
+    font-size: 0.75rem;
+  }
+
+  .projector {
+    grid-template-rows: 52px minmax(0, 1fr) 54px;
+    padding: 0.4rem;
+  }
+
+  .projector-header {
+    border-radius: 10px;
+    padding-inline: 0.55rem;
+  }
+
+  .projector-header .theme-toggle span {
+    padding-inline: 0.45rem;
+  }
+
+  .projector-header .theme-toggle {
+    min-height: 38px;
+  }
+
+  .projector-main {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 0.4rem;
+    padding-block: 0.4rem;
+  }
+
+  .projector-player {
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 0.4rem;
+  }
+
+  .projector-player > div,
+  .projector-center > div,
+  .projector-footer {
+    border-radius: 10px;
+  }
+
+  .projector-player h2 {
+    margin-top: 0.25rem;
+    font-size: 1rem;
+  }
+
+  .projector-player p,
+  .projector-player > div:last-child > div:first-child {
+    display: none;
+  }
+
+  .projector-player > div:last-child {
+    padding: 0.55rem;
+  }
+
+  .projector-center {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 0.4rem;
+  }
+
+  .projector-center > div:first-child {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .projector-center > div {
+    padding: 0.5rem;
+  }
+
+  .projector-center .text-6xl {
+    font-size: 2rem;
+  }
+
+  .projector-center .text-2xl {
+    font-size: 0.9rem;
+  }
+
+  .projector-feed {
+    display: none;
+  }
+
+  .projector-footer {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.35rem;
+  }
+
+  .projector-footer > div:nth-child(n+3) {
+    display: none;
+  }
+}
