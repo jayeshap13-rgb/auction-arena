@@ -4,9 +4,9 @@ const repoName = process.env.GITHUB_REPOSITORY?.split("/")[1];
 
 const nextConfig = {
   reactStrictMode: true,
-  output: "export",
+  output: isGithubPages ? "export" : undefined,
   images: {
-    unoptimized: true
+    unoptimized: isGithubPages
   },
   trailingSlash: true,
   basePath: isGithubPages && repoName ? `/${repoName}` : undefined,
