@@ -2,6 +2,7 @@
 
 import { useState, type ChangeEvent } from "react";
 import { useAuctionStore } from "@/lib/auctionStore";
+import type { Player } from "@/lib/data";
 import { prepareImageUpload } from "@/lib/imageUpload";
 import { PlayerCard } from "./ui";
 
@@ -13,6 +14,7 @@ export function PlayerManager() {
   const [basePrice, setBasePrice] = useState(50);
   const [photo, setPhoto] = useState("");
   const [photoMessage, setPhotoMessage] = useState("");
+  const [editingPlayerId, setEditingPlayerId] = useState("");
 
   async function readPhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -100,24 +102,76 @@ export function PlayerManager() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {leaguePlayers.map((player) => (
           <div key={player.id} className="relative">
-            <button
-              onClick={() => actions.toggleWishlist(player.id)}
-              className={`absolute right-3 top-3 z-10 rounded-full border px-3 py-1 text-xs font-semibold ${player.wishlist ? "border-arena-gold bg-arena-gold/20 text-arena-gold" : "border-white/10 bg-black/50 text-arena-muted"}`}
-            >
-              {player.wishlist ? "Wishlisted" : "Wishlist"}
-            </button>
-            {player.status !== "Sold" && (
-              <button
-                onClick={() => actions.selectPlayer(player.id)}
-                className={`absolute bottom-3 right-3 z-10 rounded-full border px-3 py-1 text-xs font-semibold ${currentPlayer.id === player.id ? "border-arena-red bg-arena-red/25 text-white" : "border-white/10 bg-black/60 text-white"}`}
-              >
-                {currentPlayer.id === player.id ? "In Auction" : "Send to Auction"}
-              </button>
+            {editingPlayerId === player.id ? (
+              <EditablePlayer player={player} onCancel={() => setEditingPlayerId("")} onSave={(next) => { actions.updatePlayer(player.id, next); setEditingPlayerId(""); }} />
+            ) : (
+              <>
+                <button
+                  onClick={() => actions.toggleWishlist(player.id)}
+                  className={`absolute right-3 top-3 z-10 rounded-full border px-3 py-1 text-xs font-semibold ${player.wishlist ? "border-arena-gold bg-arena-gold/20 text-arena-gold" : "border-white/10 bg-black/50 text-arena-muted"}`}
+                >
+                  {player.wishlist ? "Wishlisted" : "Wishlist"}
+                </button>
+                <button
+                  onClick={() => setEditingPlayerId(player.id)}
+                  className="absolute left-3 top-3 z-10 rounded-full border border-arena-gold/30 bg-black/60 px-3 py-1 text-xs font-semibold text-arena-gold"
+                >
+                  Edit
+                </button>
+                {player.status !== "Sold" && (
+                  <button
+                    onClick={() => actions.selectPlayer(player.id)}
+                    className={`absolute bottom-3 right-3 z-10 rounded-full border px-3 py-1 text-xs font-semibold ${currentPlayer.id === player.id ? "border-arena-red bg-arena-red/25 text-white" : "border-white/10 bg-black/60 text-white"}`}
+                  >
+                    {currentPlayer.id === player.id ? "In Auction" : "Send to Auction"}
+                  </button>
+                )}
+                <PlayerCard player={player} />
+              </>
             )}
-            <PlayerCard player={player} />
           </div>
         ))}
       </div>
     </>
+  );
+}
+
+function EditablePlayer({ player, onCancel, onSave }: { player: Player; onCancel: () => void; onSave: (player: Partial<Player>) => void }) {
+  const [name, setName] = useState(player.name);
+  const [role, setRole] = useState(player.role);
+  const [category, setCategory] = useState(player.category);
+  const [basePrice, setBasePrice] = useState(player.basePrice);
+  const [rating, setRating] = useState(player.rating);
+  const [stats, setStats] = useState(player.stats);
+  const [photo, setPhoto] = useState(player.photo);
+  const [status, setStatus] = useState(player.status);
+
+  return (
+    <div className="glass-card p-4">
+      <div className="gold-kicker">Edit Player</div>
+      <div className="mt-4 grid gap-3">
+        <input aria-label="Edit player name" className="input-dark" value={name} onChange={(event) => setName(event.target.value)} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input aria-label="Edit player role" className="input-dark" value={role} onChange={(event) => setRole(event.target.value)} />
+          <select aria-label="Edit player category" className="input-dark" value={category} onChange={(event) => setCategory(event.target.value)}>
+            {["Marquee", "A", "B", "Emerging"].map((item) => <option key={item}>{item}</option>)}
+          </select>
+          <input aria-label="Edit player base price" className="input-dark" type="number" value={basePrice} onChange={(event) => setBasePrice(Number(event.target.value))} />
+          <input aria-label="Edit player rating" className="input-dark" value={rating} onChange={(event) => setRating(event.target.value)} />
+        </div>
+        <input aria-label="Edit player photo" className="input-dark" value={photo} onChange={(event) => setPhoto(event.target.value)} placeholder="Initials, image URL, or uploaded image data" />
+        <textarea aria-label="Edit player performance details" className="input-dark min-h-[96px]" value={stats} onChange={(event) => setStats(event.target.value)} />
+        <select aria-label="Edit player auction status" className="input-dark" value={status} onChange={(event) => setStatus(event.target.value as Player["status"])}>
+          <option value="Queued">Queued</option>
+          <option value="Under Auction">Under Auction</option>
+          <option value="Sold">Sold</option>
+          <option value="Unsold">Unsold</option>
+        </select>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <button onClick={() => onSave({ name: name.trim() || player.name, role: role.trim() || player.role, category, basePrice: Number(basePrice) || 0, rating: rating.trim() || "-", stats: stats.trim() || "Performance details pending", photo: photo.trim() || player.name.slice(0, 2).toUpperCase(), status })} className="red-button">Save Player</button>
+          <button onClick={onCancel} className="dark-button">Cancel</button>
+        </div>
+      </div>
+    </div>
   );
 }

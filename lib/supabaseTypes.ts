@@ -6,6 +6,7 @@ export type LeagueStatus = "Draft" | "Open" | "Live" | "Paused" | "Completed";
 export type LotStatus = "Queued" | "Under Auction" | "Sold" | "Unsold";
 export type ApprovalStatus = "Pending" | "Approved" | "Rejected";
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
+export type AuctionOrder = "sequence" | "random";
 
 export type Database = {
   public: {
@@ -31,6 +32,7 @@ export type Database = {
           current_player_id: string | null;
           timer_seconds: number;
           sponsor: string | null;
+          auction_order: AuctionOrder;
           round: number;
           created_at: string;
           updated_at: string;
@@ -80,6 +82,7 @@ export type Database = {
       payment_status: PaymentStatus;
       payment_purpose: "admin_extra_team" | "owner_login";
       payment_provider: "razorpay" | "manual";
+      auction_order: AuctionOrder;
     };
     CompositeTypes: Record<string, never>;
   };

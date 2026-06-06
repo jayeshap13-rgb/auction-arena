@@ -36,7 +36,7 @@ export function AdminDashboard() {
         </div>
 
         <div className="grid gap-3 md:grid-cols-4">
-          <button onClick={actions.start} className="red-button">Start Auction</button>
+          <button onClick={() => actions.start()} className="red-button">Start Auction</button>
           <button onClick={actions.pause} className="dark-button">Pause</button>
           <button onClick={() => actions.nextLot(false)} className="dark-button">Next Lot</button>
           <button onClick={() => actions.resetTimer(24)} className="dark-button">Reset Timer</button>

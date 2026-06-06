@@ -11,6 +11,7 @@ create type public.approval_status as enum ('Pending', 'Approved', 'Rejected');
 create type public.payment_status as enum ('pending', 'paid', 'failed', 'refunded');
 create type public.payment_purpose as enum ('admin_extra_team', 'owner_login');
 create type public.payment_provider as enum ('razorpay', 'manual');
+create type public.auction_order as enum ('sequence', 'random');
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -59,6 +60,7 @@ create table public.leagues (
   current_player_id uuid null,
   timer_seconds integer not null default 24,
   sponsor text,
+  auction_order public.auction_order not null default 'sequence',
   round integer not null default 1,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

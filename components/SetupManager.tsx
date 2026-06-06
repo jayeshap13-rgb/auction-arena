@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { ADMIN_SESSION_KEY } from "@/components/AdminGate";
 import { useAuctionStore } from "@/lib/auctionStore";
+import type { Team } from "@/lib/data";
 import { prepareImageUpload } from "@/lib/imageUpload";
 
 const FREE_TEAM_LIMIT = 3;
@@ -31,10 +32,12 @@ export function SetupManager() {
   const [registrationStatus, setRegistrationStatus] = useState(state.league.registrationStatus || "Open");
   const [registrationMode, setRegistrationMode] = useState(state.league.registrationMode || "teams");
   const [auctionFormat, setAuctionFormat] = useState(state.league.auctionFormat || "open");
+  const [auctionOrder, setAuctionOrder] = useState(state.league.auctionOrder || "sequence");
   const [bidIncrement, setBidIncrement] = useState(state.league.bidIncrement || 10);
   const [maxTeams, setMaxTeams] = useState(state.league.maxTeams || 8);
   const [maxPlayersPerTeam, setMaxPlayersPerTeam] = useState(state.league.maxPlayersPerTeam || 16);
   const [ownerApprovalRequired, setOwnerApprovalRequired] = useState(state.league.ownerApprovalRequired ?? true);
+  const [sponsor, setSponsor] = useState(state.league.sponsor);
   const [teamName, setTeamName] = useState("");
   const [owner, setOwner] = useState("");
   const [teamLogo, setTeamLogo] = useState("");
@@ -44,6 +47,7 @@ export function SetupManager() {
   const [newLeagueMode, setNewLeagueMode] = useState<"admin" | "owner">("owner");
   const [newLeagueVisibility, setNewLeagueVisibility] = useState<"public" | "private">("public");
   const [newLeagueRegistration, setNewLeagueRegistration] = useState<"Open" | "Draft">("Open");
+  const [editingTeamId, setEditingTeamId] = useState("");
 
   useEffect(() => {
     if (!activeLeagueOwned && ownedLeagues[0]) {
@@ -58,11 +62,13 @@ export function SetupManager() {
     setRegistrationStatus(state.league.registrationStatus || "Open");
     setRegistrationMode(state.league.registrationMode || "teams");
     setAuctionFormat(state.league.auctionFormat || "open");
+    setAuctionOrder(state.league.auctionOrder || "sequence");
     setBidIncrement(state.league.bidIncrement || 10);
     setMaxTeams(state.league.maxTeams || 8);
     setMaxPlayersPerTeam(state.league.maxPlayersPerTeam || 16);
     setOwnerApprovalRequired(state.league.ownerApprovalRequired ?? true);
-  }, [actions, activeLeagueOwned, ownedLeagues, state.league.auctionFormat, state.league.bidIncrement, state.league.managementMode, state.league.maxPlayersPerTeam, state.league.maxTeams, state.league.name, state.league.ownerApprovalRequired, state.league.purse, state.league.registrationMode, state.league.registrationStatus, state.league.sport, state.league.visibility]);
+    setSponsor(state.league.sponsor);
+  }, [actions, activeLeagueOwned, ownedLeagues, state.league.auctionFormat, state.league.auctionOrder, state.league.bidIncrement, state.league.managementMode, state.league.maxPlayersPerTeam, state.league.maxTeams, state.league.name, state.league.ownerApprovalRequired, state.league.purse, state.league.registrationMode, state.league.registrationStatus, state.league.sponsor, state.league.sport, state.league.visibility]);
 
   async function readTeamLogo(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -88,10 +94,12 @@ export function SetupManager() {
       registrationStatus,
       registrationMode,
       auctionFormat,
+      auctionOrder,
       bidIncrement: Number(bidIncrement) || 10,
       maxTeams: Math.max(FREE_TEAM_LIMIT, Number(maxTeams) || FREE_TEAM_LIMIT),
       maxPlayersPerTeam: Number(maxPlayersPerTeam) || 16,
-      ownerApprovalRequired
+      ownerApprovalRequired,
+      sponsor: sponsor || "TITLE SPONSOR"
     });
   }
 
@@ -229,6 +237,7 @@ export function SetupManager() {
           <div className="mt-5 space-y-4">
             <input aria-label="League name" className="input-dark" value={league} onChange={(event) => setLeague(event.target.value)} />
             <input aria-label="Sport" className="input-dark" value={sport} onChange={(event) => setSport(event.target.value)} />
+            <input aria-label="Sponsor" className="input-dark" value={sponsor} onChange={(event) => setSponsor(event.target.value)} />
             <input aria-label="Purse" className="input-dark" type="number" value={purse} onChange={(event) => setPurse(Number(event.target.value))} />
             <div className="grid gap-3 sm:grid-cols-2">
               <label>
@@ -246,6 +255,20 @@ export function SetupManager() {
                   <option value="Closed">Closed</option>
                 </select>
               </label>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                onClick={() => setAuctionOrder("sequence")}
+                className={`rounded-xl border p-3 text-left text-sm font-semibold ${auctionOrder === "sequence" ? "border-arena-red bg-arena-red/15" : "border-white/10 bg-white/5 text-arena-muted"}`}
+              >
+                Default player order: Sequence
+              </button>
+              <button
+                onClick={() => setAuctionOrder("random")}
+                className={`rounded-xl border p-3 text-left text-sm font-semibold ${auctionOrder === "random" ? "border-arena-red bg-arena-red/15" : "border-white/10 bg-white/5 text-arena-muted"}`}
+              >
+                Default player order: Random
+              </button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label>
@@ -349,36 +372,76 @@ export function SetupManager() {
             </div>
           </div>
         )}
-        {state.teams.map((team) => (
+        {currentLeagueTeams.map((team) => (
           <div key={team.id} className="glass-card p-5">
-            <div className="flex items-center gap-3">
-              {team.logo ? (
-                <img src={team.logo} alt={team.name} className="h-12 w-12 shrink-0 rounded-xl object-cover" />
-              ) : (
-                <div className="h-12 w-12 shrink-0 rounded-xl" style={{ background: team.color }} />
-              )}
-              <div className="min-w-0">
-                <h2 className="single-line font-semibold">{team.name}</h2>
-                <p className="text-sm text-arena-muted">{team.owner}</p>
-                <p className="mt-1 text-xs text-arena-gold">Purse Rs. {team.purse}L | Squad {team.squad}</p>
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {ownedLeagues.map((item) => {
-                const active = (team.leagueIds || []).includes(item.id);
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => actions.toggleTeamLeague(team.id, item.id)}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${active ? "border-arena-red bg-arena-red/15 text-white" : "border-white/10 bg-white/5 text-arena-muted"}`}
-                  >
-                    {item.name}
-                  </button>
-                );
-              })}
-            </div>
+            {editingTeamId === team.id ? (
+              <EditableTeam team={team} onCancel={() => setEditingTeamId("")} onSave={(next) => { actions.updateTeam(team.id, next); setEditingTeamId(""); }} />
+            ) : (
+              <>
+                <div className="flex items-center gap-3">
+                  {team.logo ? (
+                    <img src={team.logo} alt={team.name} className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+                  ) : (
+                    <div className="h-12 w-12 shrink-0 rounded-xl" style={{ background: team.color }} />
+                  )}
+                  <div className="min-w-0">
+                    <h2 className="single-line font-semibold">{team.name}</h2>
+                    <p className="text-sm text-arena-muted">{team.owner}</p>
+                    <p className="mt-1 text-xs text-arena-gold">Purse Rs. {team.purse}L | Spent Rs. {team.spent}L | Squad {team.squad}</p>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {ownedLeagues.map((item) => {
+                    const active = (team.leagueIds || []).includes(item.id);
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => actions.toggleTeamLeague(team.id, item.id)}
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${active ? "border-arena-red bg-arena-red/15 text-white" : "border-white/10 bg-white/5 text-arena-muted"}`}
+                      >
+                        {item.name}
+                      </button>
+                    );
+                  })}
+                  <button onClick={() => setEditingTeamId(team.id)} className="rounded-full border border-arena-gold/30 bg-arena-gold/10 px-3 py-1 text-xs font-semibold text-arena-gold">Edit Team</button>
+                </div>
+              </>
+            )}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function EditableTeam({ team, onCancel, onSave }: { team: Team; onCancel: () => void; onSave: (team: Partial<Team>) => void }) {
+  const [name, setName] = useState(team.name);
+  const [owner, setOwner] = useState(team.owner);
+  const [purse, setPurse] = useState(team.purse);
+  const [spent, setSpent] = useState(team.spent);
+  const [squad, setSquad] = useState(team.squad);
+  const [color, setColor] = useState(team.color);
+  const [registrationStatus, setRegistrationStatus] = useState(team.registrationStatus || "Approved");
+
+  return (
+    <div className="space-y-3">
+      <div className="gold-kicker">Edit Team</div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <input aria-label="Edit team name" className="input-dark" value={name} onChange={(event) => setName(event.target.value)} />
+        <input aria-label="Edit team owner" className="input-dark" value={owner} onChange={(event) => setOwner(event.target.value)} />
+        <input aria-label="Edit team purse" className="input-dark" type="number" value={purse} onChange={(event) => setPurse(Number(event.target.value))} />
+        <input aria-label="Edit team spent" className="input-dark" type="number" value={spent} onChange={(event) => setSpent(Number(event.target.value))} />
+        <input aria-label="Edit team squad" className="input-dark" type="number" value={squad} onChange={(event) => setSquad(Number(event.target.value))} />
+        <input aria-label="Edit team color" className="input-dark" type="color" value={color} onChange={(event) => setColor(event.target.value)} />
+        <select aria-label="Edit team approval" className="input-dark sm:col-span-2" value={registrationStatus} onChange={(event) => setRegistrationStatus(event.target.value as NonNullable<Team["registrationStatus"]>)}>
+          <option value="Approved">Approved</option>
+          <option value="Pending">Pending</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <button onClick={() => onSave({ name: name.trim() || team.name, owner: owner.trim() || team.owner, purse: Number(purse) || 0, spent: Number(spent) || 0, squad: Number(squad) || 0, color, registrationStatus })} className="red-button">Save Team</button>
+        <button onClick={onCancel} className="dark-button">Cancel</button>
       </div>
     </div>
   );

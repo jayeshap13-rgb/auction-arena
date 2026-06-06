@@ -18,6 +18,8 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
   const [ownerTeam, setOwnerTeam] = useState(state.teams[0]?.id || "");
   const [bidAmount, setBidAmount] = useState(currentBid + 10);
   const [showStartPayment, setShowStartPayment] = useState(false);
+  const [showStartOptions, setShowStartOptions] = useState(false);
+  const [auctionOrder, setAuctionOrder] = useState<"sequence" | "random">(state.league.auctionOrder || "sequence");
   const [startPaymentReference, setStartPaymentReference] = useState("");
 
   const activeTeamId = mode === "owner" ? (ownerTeamId || ownerTeam) : selectedTeam;
@@ -45,14 +47,20 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
       setShowStartPayment(true);
       return;
     }
-    actions.start();
+    setAuctionOrder(state.league.auctionOrder || "sequence");
+    setShowStartOptions(true);
+  }
+
+  function confirmStartAuction(order = auctionOrder) {
+    actions.start(order);
+    setShowStartOptions(false);
   }
 
   function confirmStartPayment() {
     actions.markLeaguePaid(startPaymentReference || `START-UPI-${Date.now()}`, adminExtraTeams);
     setShowStartPayment(false);
     setStartPaymentReference("");
-    actions.start();
+    setShowStartOptions(true);
   }
 
   if (mode === "projector") {
@@ -194,6 +202,33 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       <button onClick={confirmStartPayment} className="red-button">Mark Paid & Start</button>
                       <button onClick={() => setShowStartPayment(false)} className="dark-button">Cancel</button>
+                    </div>
+                  </div>
+                )}
+                {showStartOptions && (
+                  <div className="mt-5 rounded-2xl border border-arena-gold/30 bg-arena-gold/10 p-4">
+                    <div className="gold-kicker">Start Auction</div>
+                    <h3 className="mt-2 text-xl font-semibold">Choose player lot order</h3>
+                    <p className="mt-2 text-sm leading-6 text-arena-muted">
+                      Sequence follows the uploaded/player list order. Random picks the opening lot and next lots randomly from available queued players.
+                    </p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <button
+                        onClick={() => setAuctionOrder("sequence")}
+                        className={`rounded-xl border p-4 text-left text-sm font-semibold ${auctionOrder === "sequence" ? "border-arena-red bg-arena-red/15 text-white" : "border-white/10 bg-white/5 text-arena-muted"}`}
+                      >
+                        Sequence order
+                      </button>
+                      <button
+                        onClick={() => setAuctionOrder("random")}
+                        className={`rounded-xl border p-4 text-left text-sm font-semibold ${auctionOrder === "random" ? "border-arena-red bg-arena-red/15 text-white" : "border-white/10 bg-white/5 text-arena-muted"}`}
+                      >
+                        Random order
+                      </button>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <button onClick={() => confirmStartAuction()} className="red-button">Start Auction</button>
+                      <button onClick={() => setShowStartOptions(false)} className="dark-button">Cancel</button>
                     </div>
                   </div>
                 )}
