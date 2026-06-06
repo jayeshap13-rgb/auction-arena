@@ -47,7 +47,7 @@ export function SetupManager() {
   const [newLeagueSport, setNewLeagueSport] = useState("Cricket");
   const [newLeagueMode, setNewLeagueMode] = useState<"admin" | "owner">("owner");
   const [newLeagueVisibility, setNewLeagueVisibility] = useState<"public" | "private">("public");
-  const [newLeagueRegistration, setNewLeagueRegistration] = useState<"Open" | "Draft">("Open");
+  const [newLeagueRegistration, setNewLeagueRegistration] = useState<"Open" | "Draft">("Draft");
   const [editingTeamId, setEditingTeamId] = useState("");
   const [pendingTeam, setPendingTeam] = useState<{ name: string; owner: string; logo?: string } | null>(null);
   const [teamPaymentState, setTeamPaymentState] = useState<"idle" | "scan">("idle");
@@ -239,8 +239,8 @@ export function SetupManager() {
               <label>
                 <span className="mb-2 block text-sm font-semibold text-arena-muted">Registration</span>
                 <select className="input-dark" value={newLeagueRegistration} onChange={(event) => setNewLeagueRegistration(event.target.value as "Open" | "Draft")}>
-                  <option value="Open">Open for owner requests</option>
                   <option value="Draft">Draft until published</option>
+                  <option value="Open">Open for owner requests</option>
                 </select>
               </label>
             </div>

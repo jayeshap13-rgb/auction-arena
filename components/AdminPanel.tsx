@@ -94,12 +94,15 @@ function AdminOverview({ onOpen, canOperate, ownedLeagueCount, isOwnerBiddingLea
   const { state, leagueTeams, leaguePlayers, currentPlayer, currentBid, leader, actions } = useAuctionStore();
   const sold = leaguePlayers.filter((player) => player.status === "Sold").length;
   const pendingOwners = state.ownerRequests.filter((request) => request.status === "Pending").length;
+  const completedPlayers = leaguePlayers.filter((player) => player.status === "Sold" || player.status === "Unsold").length;
+  const isComplete = leaguePlayers.length > 0 && completedPlayers === leaguePlayers.length;
+  const readyForAuction = leagueTeams.length > 0 && leaguePlayers.length > 0;
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
       <section className="min-w-0 space-y-5">
         <div className="red-card p-4 sm:p-6">
-          <div className="gold-kicker">Unified Admin Panel</div>
+          <div className="gold-kicker">Tournament Command Path</div>
           {ownedLeagueCount > 0 ? (
             <>
               <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">{state.league.name}</h2>
@@ -115,11 +118,12 @@ function AdminOverview({ onOpen, canOperate, ownedLeagueCount, isOwnerBiddingLea
               ) : (
                 <>
                   <p className="mt-2 text-sm text-arena-muted">Current lot: {currentPlayer.name} | Leader: {leader} | Bid: Rs. {currentBid}L</p>
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <button disabled={!canOperate} onClick={() => onOpen("auction")} className={`red-button ${!canOperate ? "cursor-not-allowed opacity-50" : ""}`}>Open Auction Room</button>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                    <button disabled={!canOperate || !readyForAuction} onClick={() => onOpen("auction")} className={`red-button ${!canOperate || !readyForAuction ? "cursor-not-allowed opacity-50" : ""}`}>Open Auction Room</button>
                     <button disabled={!canOperate} onClick={actions.pause} className={`dark-button ${!canOperate ? "cursor-not-allowed opacity-50" : ""}`}>Pause</button>
                     <button disabled={!canOperate} onClick={() => actions.nextLot(false)} className={`dark-button ${!canOperate ? "cursor-not-allowed opacity-50" : ""}`}>Next Lot</button>
                     <button disabled={!canOperate} onClick={() => actions.resetTimer(24)} className={`dark-button ${!canOperate ? "cursor-not-allowed opacity-50" : ""}`}>Reset Timer</button>
+                    <button onClick={() => onOpen("reports")} className="dark-button">Reports</button>
                   </div>
                 </>
               )}
@@ -132,6 +136,72 @@ function AdminOverview({ onOpen, canOperate, ownedLeagueCount, isOwnerBiddingLea
             </>
           )}
         </div>
+
+        {ownedLeagueCount > 0 && (
+          <div className="glass-card p-4 sm:p-5">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+              <div>
+                <div className="gold-kicker">Auction Journey</div>
+                <h3 className="mt-2 text-2xl font-semibold">Follow this path from setup to bidding</h3>
+              </div>
+              <span className="w-fit rounded-full border border-arena-gold/25 bg-arena-gold/10 px-3 py-1 text-xs font-semibold text-arena-gold">
+                {isComplete ? "Completed" : state.league.status === "Live" ? "Auction Active" : state.league.registrationStatus}
+              </span>
+            </div>
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <JourneyStep
+                step="1"
+                title="Tournament Created"
+                body="Name, sport, management mode and purse are set."
+                done={ownedLeagueCount > 0}
+                action="Edit Setup"
+                onClick={() => onOpen("setup")}
+              />
+              <JourneyStep
+                step="2"
+                title="Teams Added"
+                body={`${leagueTeams.length} team${leagueTeams.length === 1 ? "" : "s"} in this tournament.`}
+                done={leagueTeams.length > 0}
+                action="Manage Teams"
+                onClick={() => onOpen("setup")}
+              />
+              <JourneyStep
+                step="3"
+                title="Players Uploaded"
+                body={`${leaguePlayers.length} player${leaguePlayers.length === 1 ? "" : "s"} ready for auction.`}
+                done={leaguePlayers.length > 0}
+                action="Add Players"
+                onClick={() => onOpen("players")}
+              />
+              <JourneyStep
+                step="4"
+                title="Registration Control"
+                body={state.league.registrationStatus === "Closed" ? "Registration is closed for auction." : "Open registration while teams and owners are prepared."}
+                done={state.league.registrationStatus === "Closed"}
+                action={state.league.registrationStatus === "Closed" ? "Reopen" : "Close"}
+                onClick={() => actions.updateLeague({ registrationStatus: state.league.registrationStatus === "Closed" ? "Open" : "Closed" })}
+                disabled={!canOperate}
+              />
+              <JourneyStep
+                step="5"
+                title="Auction Room"
+                body={readyForAuction ? "Start sequence or random lots, control timer, bidding and results." : "Add at least one team and one player before starting."}
+                done={state.league.status === "Live"}
+                action={readyForAuction ? "Open Auction" : "Complete Setup"}
+                onClick={() => onOpen(readyForAuction ? "auction" : leagueTeams.length === 0 ? "setup" : "players")}
+                disabled={!canOperate}
+              />
+              <JourneyStep
+                step="6"
+                title="Reports"
+                body={`${completedPlayers}/${leaguePlayers.length || 0} players completed.`}
+                done={isComplete}
+                action="Open Reports"
+                onClick={() => onOpen("reports")}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-4 md:grid-cols-3">
           <Metric label="My Leagues" value={String(ownedLeagueCount)} />
@@ -164,6 +234,23 @@ function AdminOverview({ onOpen, canOperate, ownedLeagueCount, isOwnerBiddingLea
           {leagueTeams.map((team) => <TeamPurse key={team.id} team={team} />)}
         </div>
       </aside>}
+    </div>
+  );
+}
+
+function JourneyStep({ step, title, body, done, action, onClick, disabled = false }: { step: string; title: string; body: string; done: boolean; action: string; onClick: () => void; disabled?: boolean }) {
+  return (
+    <div className={`rounded-2xl border p-4 ${done ? "border-arena-red/35 bg-arena-red/10" : "border-white/10 bg-white/5"}`}>
+      <div className="flex items-start gap-3">
+        <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-semibold ${done ? "bg-arena-red text-white" : "bg-white/10 text-arena-muted"}`}>{step}</div>
+        <div className="min-w-0">
+          <div className="single-line font-semibold">{title}</div>
+          <p className="mt-1 text-sm leading-5 text-arena-muted">{body}</p>
+        </div>
+      </div>
+      <button onClick={onClick} disabled={disabled} className={`mt-4 w-full rounded-full border px-3 py-2 text-sm font-semibold transition ${disabled ? "cursor-not-allowed border-white/10 text-arena-muted opacity-60" : "border-arena-gold/30 bg-arena-gold/10 text-arena-gold hover:bg-arena-gold/20"}`}>
+        {action}
+      </button>
     </div>
   );
 }

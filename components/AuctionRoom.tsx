@@ -15,6 +15,7 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
   const [ownerTeam, setOwnerTeam] = useState(state.teams[0]?.id || "");
   const [bidAmount, setBidAmount] = useState(currentBid + 10);
   const [showStartOptions, setShowStartOptions] = useState(false);
+  const [startMessage, setStartMessage] = useState("");
   const [adminTab, setAdminTab] = useState<"control" | "bid" | "result" | "links">("control");
   const [auctionOrder, setAuctionOrder] = useState<"sequence" | "random">(state.league.auctionOrder || "sequence");
 
@@ -27,6 +28,7 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
   const unsoldPlayers = leaguePlayers.filter((player) => player.status === "Unsold");
   const wishlist = leaguePlayers.filter((player) => player.wishlist);
   const leaderboard = useMemo(() => [...leagueTeams].sort((a, b) => b.spent - a.spent), [leagueTeams]);
+  const canStartAuction = leagueTeams.length > 0 && leaguePlayers.length > 0;
 
   function submitBid() {
     if (!activeTeam) return;
@@ -35,6 +37,11 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
   }
 
   function startAuction() {
+    if (!canStartAuction) {
+      setStartMessage("Add at least one team and one player before starting the auction.");
+      return;
+    }
+    setStartMessage("");
     setAuctionOrder(state.league.auctionOrder || "sequence");
     setShowStartOptions(true);
   }
@@ -199,11 +206,18 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
                   </div>
                 )}
                 {adminTab === "control" && (
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <button onClick={startAuction} className="red-button">Start</button>
+                  <div className="mt-5">
+                    {(startMessage || !canStartAuction) && (
+                      <div className="mb-3 rounded-xl border border-arena-gold/25 bg-arena-gold/10 p-3 text-sm text-arena-muted">
+                        {startMessage || "Add at least one team and one player before starting the auction."}
+                      </div>
+                    )}
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <button onClick={startAuction} disabled={!canStartAuction} className={`red-button ${!canStartAuction ? "cursor-not-allowed opacity-50" : ""}`}>Start</button>
                     <button onClick={actions.pause} className="dark-button">Pause</button>
                     <button onClick={() => actions.resetTimer(24)} className="dark-button">Reset Clock</button>
                     <button onClick={actions.undoBid} className="dark-button">Undo Bid</button>
+                    </div>
                   </div>
                 )}
                 {adminTab === "result" && (
