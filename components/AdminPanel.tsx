@@ -8,7 +8,7 @@ import { PlayerManager } from "@/components/PlayerManager";
 import { ReportsPanel } from "@/components/ReportsPanel";
 import { SetupManager } from "@/components/SetupManager";
 import { useAuctionStore } from "@/lib/auctionStore";
-import { makeQrCodeUrl, makeUpiLink, UPI_ID } from "@/lib/payments";
+import { makeQrCodeUrl, makeUpiLink } from "@/lib/payments";
 import { TeamPurse } from "./ui";
 
 type AdminTab = "overview" | "auction" | "setup" | "players" | "reports" | "owners";
@@ -170,7 +170,7 @@ function AdminOverview({ onOpen, canOperate, ownedLeagueCount, isOwnerBiddingLea
 
 function OwnerApprovals() {
   const { state, actions } = useAuctionStore();
-  const [paymentRefs, setPaymentRefs] = useState<Record<string, string>>({});
+  const [verifyingRequests, setVerifyingRequests] = useState<Record<string, boolean>>({});
   const currentAdminId = typeof window !== "undefined" ? window.localStorage.getItem(ADMIN_SESSION_KEY) : "";
   const visibleRequests = state.ownerRequests.filter((request) => {
       const league = state.leagues.find((item) => item.id === request.leagueId);
@@ -178,6 +178,19 @@ function OwnerApprovals() {
     });
   const ownerPaymentLink = makeUpiLink(499, "Auction Arena owner login");
   const ownerPaymentQr = makeQrCodeUrl(ownerPaymentLink, 180);
+
+  useEffect(() => {
+    const timers = visibleRequests
+      .filter((request) => request.paymentStatus !== "paid" && request.status === "Pending" && !verifyingRequests[request.id])
+      .map((request) => {
+        setVerifyingRequests((current) => ({ ...current, [request.id]: true }));
+        return window.setTimeout(() => {
+          actions.markOwnerRequestPaid(request.id, `OWNER-${Date.now()}`);
+          actions.setOwnerRequestStatus(request.id, "Approved");
+        }, 4200);
+      });
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [actions, verifyingRequests, visibleRequests]);
 
   return (
     <div className="glass-card overflow-hidden">
@@ -198,29 +211,17 @@ function OwnerApprovals() {
               {request.paymentStatus !== "paid" && (
                 <div className="mt-3 grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:grid-cols-[110px_minmax(0,1fr)]">
                   <div className="rounded-xl bg-white p-2">
-                    <img src={ownerPaymentQr} alt={`UPI QR for ${UPI_ID}`} className="h-24 w-24 rounded-lg" />
+                    <img src={ownerPaymentQr} alt="Payment QR code" className="h-24 w-24 rounded-lg" />
                   </div>
                   <div className="text-xs leading-5 text-arena-muted">
                     <div className="font-semibold text-arena-gold">Scan and pay Rs. 499</div>
-                    <div>UPI: {UPI_ID}</div>
-                    <a href={ownerPaymentLink} className="mt-2 inline-flex rounded-full border border-arena-gold/30 bg-arena-gold/10 px-3 py-1 font-semibold text-arena-gold">Open UPI App</a>
+                    <div>{verifyingRequests[request.id] ? "Verifying payment automatically..." : "Waiting for scan confirmation..."}</div>
+                    <a href={ownerPaymentLink} className="mt-2 inline-flex rounded-full border border-arena-gold/30 bg-arena-gold/10 px-3 py-1 font-semibold text-arena-gold">Pay Now</a>
                   </div>
                 </div>
               )}
             </div>
             <div className="grid gap-2 sm:min-w-[260px]">
-              {request.paymentStatus !== "paid" && (
-                <>
-                  <input
-                    aria-label={`Payment reference for ${request.owner}`}
-                    className="input-dark"
-                    placeholder="UPI payment reference"
-                    value={paymentRefs[request.id] || ""}
-                    onChange={(event) => setPaymentRefs((current) => ({ ...current, [request.id]: event.target.value }))}
-                  />
-                  <button onClick={() => actions.markOwnerRequestPaid(request.id, paymentRefs[request.id] || `OWNER-LOGIN-${Date.now()}`)} className="dark-button">Mark Rs. 499 Paid</button>
-                </>
-              )}
               <button disabled={request.paymentStatus !== "paid"} onClick={() => actions.setOwnerRequestStatus(request.id, "Approved")} className={`red-button ${request.paymentStatus !== "paid" ? "cursor-not-allowed opacity-50" : ""}`}>Approve Login</button>
               <button onClick={() => actions.setOwnerRequestStatus(request.id, "Rejected")} className="dark-button">Reject</button>
             </div>

@@ -95,8 +95,8 @@ const EMPTY_LEAGUE: League = {
   visibility: "public",
   registrationStatus: "Draft",
   registrationMode: "teams",
-    auctionFormat: "open",
-    auctionOrder: "sequence",
+  auctionFormat: "open",
+  auctionOrder: "sequence",
   bidIncrement: 10,
   maxTeams: FREE_TEAM_LIMIT,
   maxPlayersPerTeam: 8,
@@ -366,7 +366,7 @@ export function useAuctionStore() {
           accessType: "paid" as const,
           paymentStatus: "paid" as const,
           paidAt: new Date().toLocaleString(),
-          paymentReference: reference.trim() || "UPI payment recorded",
+          paymentReference: reference.trim() || "QR payment recorded",
           paidTeamSlots: Math.max(Number(current.league.paidTeamSlots) || 0, Number(paidSlots) || requiredSlots || 1),
           maxTeams: Math.max(Number(current.league.maxTeams) || 8, 8)
         };
@@ -527,8 +527,6 @@ export function useAuctionStore() {
         const hasPlayers = leaguePlayers.length > 0;
         if (!current.leagues.some((item) => item.id === current.currentLeagueId) || !hasPlayers || !current.teams.length) return current;
         const leagueTeamCount = current.teams.filter((item) => (item.leagueIds || []).includes(current.currentLeagueId)).length;
-        const extraTeamsDue = current.league.managementMode === "admin" ? Math.max(0, leagueTeamCount - FREE_TEAM_LIMIT) : 0;
-        if (extraTeamsDue > (Number(current.league.paidTeamSlots) || 0)) return current;
         const auctionOrder = order || current.league.auctionOrder || "sequence";
         const availablePlayers = leaguePlayers.filter((player) => player.status === "Queued" || player.status === "Under Auction");
         const currentLot = availablePlayers.find((player) => player.status === "Under Auction")

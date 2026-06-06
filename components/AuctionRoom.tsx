@@ -6,23 +6,17 @@ import { useAuctionStore } from "@/lib/auctionStore";
 import { BrandLogo } from "@/components/BrandLogo";
 import { LeagueModeLinks } from "@/components/LeagueModeLinks";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { makeQrCodeUrl, makeUpiLink, UPI_ID } from "@/lib/payments";
 import { PlayerCard, TeamPurse } from "./ui";
 
 type Mode = "admin" | "owner" | "spectator" | "projector";
-const FREE_TEAM_LIMIT = 3;
-const ADMIN_EXTRA_TEAM_PRICE = 99;
-
 export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true }: { mode?: Mode; ownerTeamId?: string; allowAdminBids?: boolean }) {
   const { state, leagueTeams, leaguePlayers, currentPlayer, currentBid, currentBids, highestBid, leader, actions } = useAuctionStore();
   const [selectedTeam, setSelectedTeam] = useState(state.teams[0]?.id || "");
   const [ownerTeam, setOwnerTeam] = useState(state.teams[0]?.id || "");
   const [bidAmount, setBidAmount] = useState(currentBid + 10);
-  const [showStartPayment, setShowStartPayment] = useState(false);
   const [showStartOptions, setShowStartOptions] = useState(false);
   const [adminTab, setAdminTab] = useState<"control" | "bid" | "result" | "links">("control");
   const [auctionOrder, setAuctionOrder] = useState<"sequence" | "random">(state.league.auctionOrder || "sequence");
-  const [startPaymentReference, setStartPaymentReference] = useState("");
 
   const activeTeamId = mode === "owner" ? (ownerTeamId || ownerTeam) : selectedTeam;
   const activeTeam = leagueTeams.find((team) => team.id === activeTeamId) || state.teams.find((team) => team.id === activeTeamId) || leagueTeams[0] || state.teams[0];
@@ -33,11 +27,6 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
   const unsoldPlayers = leaguePlayers.filter((player) => player.status === "Unsold");
   const wishlist = leaguePlayers.filter((player) => player.wishlist);
   const leaderboard = useMemo(() => [...leagueTeams].sort((a, b) => b.spent - a.spent), [leagueTeams]);
-  const adminExtraTeams = state.league.managementMode === "admin" ? Math.max(0, leagueTeams.length - FREE_TEAM_LIMIT) : 0;
-  const unpaidAdminExtraTeams = Math.max(0, adminExtraTeams - (Number(state.league.paidTeamSlots) || 0));
-  const startPaymentAmount = unpaidAdminExtraTeams * ADMIN_EXTRA_TEAM_PRICE;
-  const startUpiLink = makeUpiLink(startPaymentAmount, `Start ${state.league.name}`);
-  const startQrCodeUrl = makeQrCodeUrl(startUpiLink);
 
   function submitBid() {
     if (!activeTeam) return;
@@ -46,10 +35,6 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
   }
 
   function startAuction() {
-    if (mode === "admin" && unpaidAdminExtraTeams > 0) {
-      setShowStartPayment(true);
-      return;
-    }
     setAuctionOrder(state.league.auctionOrder || "sequence");
     setShowStartOptions(true);
   }
@@ -59,23 +44,16 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
     setShowStartOptions(false);
   }
 
-  function confirmStartPayment() {
-    actions.markLeaguePaid(startPaymentReference || `START-UPI-${Date.now()}`, adminExtraTeams);
-    setShowStartPayment(false);
-    setStartPaymentReference("");
-    setShowStartOptions(true);
-  }
-
   if (mode === "projector") {
     return (
-      <div className="projector grid h-full min-h-0 grid-rows-[58px_minmax(0,1fr)_84px] overflow-hidden bg-[#061018] p-3 text-white">
-        <header className="projector-header flex min-h-0 items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.055] px-4">
+      <div className="projector grid h-full min-h-0 grid-rows-[56px_minmax(0,1fr)_76px] overflow-hidden bg-[#05070b] p-3 text-white">
+        <header className="flex min-h-0 items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.06] px-4">
           <Link href="/" className="flex min-w-0 items-center gap-3 transition hover:text-arena-gold">
             <span className="grid h-11 w-11 shrink-0 place-items-center">
               <BrandLogo className="h-full w-full" priority />
             </span>
             <span className="min-w-0">
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.22em] text-arena-gold">Auction Arena Broadcast</span>
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.22em] text-arena-gold">Broadcast View</span>
               <span className="mt-0.5 block single-line text-xl font-semibold leading-tight">{state.league.name}</span>
             </span>
           </Link>
@@ -86,38 +64,55 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
           </div>
         </header>
 
-        <section className="projector-main grid min-h-0 gap-3 py-3 lg:grid-cols-[28%_minmax(0,1fr)_27%]">
-          <div className="projector-player grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-3">
-            <div className="grid min-h-0 place-items-center rounded-2xl border border-arena-red/30 bg-gradient-to-br from-arena-red/25 via-white/[0.055] to-arena-gold/10 shadow-redglow">
+        <section className="grid min-h-0 gap-3 py-3 lg:grid-cols-[34%_minmax(0,1fr)]">
+          <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-3">
+            <div className="grid min-h-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.06]">
               {isImageSource(currentPlayer.photo) ? (
-                <img src={currentPlayer.photo} alt={currentPlayer.name} className="aspect-square w-[min(74%,280px)] rounded-full border border-white/10 object-cover shadow-redglow" />
+                <img src={currentPlayer.photo} alt={currentPlayer.name} className="aspect-square w-[min(78%,330px)] rounded-3xl border border-white/10 object-cover" />
               ) : (
-                <div className="grid aspect-square w-[min(74%,280px)] place-items-center rounded-full border border-white/10 bg-black/25 text-6xl font-semibold text-white">
+                <div className="grid aspect-square w-[min(78%,330px)] place-items-center rounded-3xl border border-white/10 bg-gradient-to-br from-arena-red to-arena-gold text-7xl font-semibold text-white">
                   {currentPlayer.photo}
                 </div>
               )}
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-arena-gold">{currentPlayer.category} | {currentPlayer.role}</div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-arena-gold">{currentPlayer.category} / {currentPlayer.role}</div>
               <h2 className="mt-2 text-3xl font-semibold leading-tight">{currentPlayer.name}</h2>
-              <p className="mt-2 text-sm leading-5 text-arena-muted">{currentPlayer.stats}</p>
+              <p className="mt-2 line-clamp-2 text-sm leading-5 text-arena-muted">{currentPlayer.stats}</p>
             </div>
           </div>
 
-          <div className="projector-center grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-3">
-            <div className="grid grid-cols-3 gap-3">
-              <BroadcastMetric label="Base Price" value={`Rs. ${currentPlayer.basePrice}L`} />
-              <BroadcastMetric label="Round" value={`Round ${state.league.round}`} />
-              <BroadcastMetric label="Lot Status" value={currentPlayer.status} gold={currentPlayer.status === "Sold"} />
+          <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-3">
+            <div className="grid grid-cols-4 gap-3">
+              <BroadcastMetric label="Base" value={`Rs. ${currentPlayer.basePrice}L`} />
+              <BroadcastMetric label="Round" value={`${state.league.round}`} />
+              <BroadcastMetric label="Status" value={currentPlayer.status} gold={currentPlayer.status === "Sold"} />
+              <BroadcastMetric label="Clock" value={`${state.timer}s`} gold />
             </div>
 
-            <div className="grid min-h-0 place-items-center rounded-2xl border border-arena-gold/30 bg-gradient-to-br from-arena-gold/15 via-white/[0.055] to-arena-red/10 p-5 text-center">
-              <div className="w-full">
-                <div className="text-xs font-semibold uppercase tracking-[0.28em] text-arena-muted">Current Bid</div>
-                <div className="mt-2 text-6xl font-semibold leading-none text-arena-gold">Rs. {currentBid}L</div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <BroadcastMetric label="Highest Bidder" value={leader} />
-                  <BroadcastMetric label="Countdown" value={`${state.timer}s`} gold />
+            <div className="grid min-h-0 rounded-2xl border border-arena-gold/30 bg-gradient-to-br from-arena-gold/15 via-white/[0.06] to-arena-red/10 p-5">
+              <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_260px] gap-4">
+                <div className="grid min-w-0 content-center">
+                  <div className="text-xs font-semibold uppercase tracking-[0.28em] text-arena-muted">Current Bid</div>
+                  <div className="mt-3 text-7xl font-semibold leading-none text-arena-gold">Rs. {currentBid}L</div>
+                  <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
+                    <div className="text-xs font-semibold uppercase tracking-widest text-arena-muted">Highest Bidder</div>
+                    <div className="mt-1 single-line text-3xl font-semibold">{leader}</div>
+                  </div>
+                </div>
+                <div className="min-h-0 rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-arena-gold">Bid Feed</div>
+                  <div className="mt-3 grid gap-2">
+                    {(currentBids.length ? currentBids.slice(0, 5) : [{ id: "open", team: "Waiting for first bid", amount: currentPlayer.basePrice, time: "--" }]).map((bid) => (
+                      <div key={bid.id} className="rounded-xl border border-white/10 bg-white/[0.06] p-3">
+                        <div className="single-line text-sm font-semibold">{bid.team}</div>
+                        <div className="mt-1 flex items-center justify-between gap-3 text-xs text-arena-muted">
+                          <span>{bid.time}</span>
+                          <span className="font-semibold text-arena-gold">Rs. {bid.amount}L</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -129,27 +124,6 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
               </div>
             </div>
           </div>
-
-          <aside className="projector-feed grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3">
-            <div className="grid grid-cols-2 gap-3">
-              <BroadcastMetric label="Teams" value={String(leagueTeams.length)} />
-              <BroadcastMetric label="Bids" value={String(currentBids.length)} />
-            </div>
-            <div className="min-h-0 rounded-2xl border border-white/10 bg-white/[0.055] p-4">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-arena-gold">Live Bid Feed</div>
-              <div className="mt-3 grid gap-2">
-                {(currentBids.length ? currentBids.slice(0, 5) : [{ id: "open", team: "Waiting for first bid", amount: currentPlayer.basePrice, time: "--" }]).map((bid) => (
-                  <div key={bid.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                    <div className="text-sm font-semibold leading-tight">{bid.team}</div>
-                    <div className="mt-1 flex items-center justify-between gap-3 text-xs text-arena-muted">
-                      <span>{bid.time}</span>
-                      <span className="font-semibold text-arena-gold">Rs. {bid.amount}L</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </aside>
         </section>
 
         <footer className="projector-footer grid min-h-0 grid-cols-4 gap-3 rounded-2xl border border-white/10 bg-white/[0.055] p-3">
@@ -172,13 +146,22 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
   }
 
   return (
-    <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+    <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
       <section className="space-y-5 min-w-0">
-        <AuctionHeader status={state.league.status} timer={state.timer} currentBid={currentBid} leader={leader} round={state.league.round} />
-        <div className="grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="red-card p-4 sm:p-5">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div className="min-w-0">
+              <div className="gold-kicker">{mode === "admin" ? "Auction Control Room" : mode === "owner" ? "Owner Bidding Room" : "Auction Viewer"}</div>
+              <h2 className="mt-2 single-line text-2xl font-semibold sm:text-3xl">{state.league.name}</h2>
+              <p className="mt-2 text-sm text-arena-muted">Current lot: {currentPlayer.name} | {leaguePlayers.length} players | {leagueTeams.length} teams</p>
+            </div>
+            <AuctionHeader status={state.league.status} timer={state.timer} currentBid={currentBid} leader={leader} round={state.league.round} />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)]">
           <PlayerCard player={currentPlayer} featured />
           <div className="glass-card p-4 sm:p-5">
-            <div className="gold-kicker">Current Lot Controls</div>
+            <div className="gold-kicker">Live Lot</div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <InfoPill label="Base" value={`Rs. ${currentPlayer.basePrice}L`} />
               <InfoPill label="Status" value={currentPlayer.status} />
@@ -188,32 +171,6 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
             {mode === "admin" && (
               <>
                 <AdminControlTabs active={adminTab} onChange={setAdminTab} />
-                {showStartPayment && (
-                  <div className="mt-5 rounded-2xl border border-arena-red/30 bg-arena-red/10 p-4">
-                    <div className="gold-kicker">Payment Required To Start</div>
-                    <h3 className="mt-2 text-xl font-semibold">Admin-managed extra teams</h3>
-                    <p className="mt-2 text-sm leading-6 text-arena-muted">
-                      This league has {leagueTeams.length} teams. The first {FREE_TEAM_LIMIT} are free, so pay Rs. {startPaymentAmount} for {unpaidAdminExtraTeams} extra team{unpaidAdminExtraTeams === 1 ? "" : "s"} before starting.
-                    </p>
-                    <div className="mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-                      <div className="rounded-2xl border border-white/10 bg-white p-3">
-                        <img src={startQrCodeUrl} alt={`UPI QR for ${UPI_ID}`} className="mx-auto h-48 w-48 rounded-xl" />
-                      </div>
-                      <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
-                        <div className="text-arena-muted">UPI ID</div>
-                        <div className="mt-1 font-semibold text-arena-gold">{UPI_ID}</div>
-                        <div className="mt-3 text-arena-muted">Amount</div>
-                        <div className="mt-1 font-semibold text-white">Rs. {startPaymentAmount}</div>
-                        <a href={startUpiLink} className="red-button mt-4 w-full">Open UPI App</a>
-                      </div>
-                    </div>
-                    <input aria-label="Auction start payment reference" className="input-dark mt-3" placeholder="UPI transaction reference" value={startPaymentReference} onChange={(event) => setStartPaymentReference(event.target.value)} />
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                      <button onClick={confirmStartPayment} className="red-button">Mark Paid & Start</button>
-                      <button onClick={() => setShowStartPayment(false)} className="dark-button">Cancel</button>
-                    </div>
-                  </div>
-                )}
                 {showStartOptions && (
                   <div className="mt-5 rounded-2xl border border-arena-gold/30 bg-arena-gold/10 p-4">
                     <div className="gold-kicker">Start Auction</div>
@@ -345,14 +302,14 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
       </section>
 
       <aside className="space-y-5 min-w-0">
-        <div className="glass-card p-5">
+        <div className="glass-card p-4">
           <div className="gold-kicker">Team Purses</div>
           <div className="mt-4 space-y-3">
             {leagueTeams.length === 0 && <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-arena-muted">Teams will appear here after setup.</div>}
             {leagueTeams.map((team) => <TeamPurse key={team.id} team={team} />)}
           </div>
         </div>
-        <div className="glass-card p-5">
+        <div className="glass-card p-4">
           <div className="gold-kicker">Bid History</div>
           <div className="mt-4 space-y-3">
             {state.bids.length === 0 && <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-arena-muted">No bids yet. Start the auction to begin bidding.</div>}

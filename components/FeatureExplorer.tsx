@@ -63,7 +63,7 @@ const featureSets = {
 };
 
 const workflows = [
-  ["Create tournament", "Admin creates a tournament, starts with 3 free teams, and unlocks more teams through UPI when needed."],
+  ["Create tournament", "Admin creates a tournament, starts with 3 free teams, and unlocks more teams through QR payment when needed."],
   ["Open registration", "Owners create accounts, choose a team, and request access while the tournament is open."],
   ["Approve access", "Admin reviews owner requests, keeps registration open or closed, and can use invite-only mode."],
   ["Setup auction", "Admin adds teams, players, purse values, bid increments, categories, base prices and photos."],
