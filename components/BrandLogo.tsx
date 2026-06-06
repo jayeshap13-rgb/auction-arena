@@ -8,8 +8,9 @@ type BrandLogoProps = {
 
 export function BrandLogo({ variant = "mark", className = "", priority = false }: BrandLogoProps) {
   const isFull = variant === "full";
-  const lightSource = isFull ? "/brand/auction-arena-logo-transparent.png" : "/brand/auction-arena-mark-transparent.png";
-  const darkSource = isFull ? "/brand/auction-arena-logo-dark.png" : "/brand/auction-arena-mark-dark.png";
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const lightSource = isFull ? `${basePath}/brand/auction-arena-logo-transparent.png` : `${basePath}/brand/auction-arena-mark-transparent.png`;
+  const darkSource = isFull ? `${basePath}/brand/auction-arena-logo-dark.png` : `${basePath}/brand/auction-arena-mark-dark.png`;
 
   return (
     <span

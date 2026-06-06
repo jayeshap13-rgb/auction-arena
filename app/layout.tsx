@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 export const metadata: Metadata = {
   title: "Auction Arena",
   description: "Premium sports player auction platform prototype.",
   icons: {
-    icon: "/brand/auction-arena-mark-transparent.png",
-    apple: "/brand/auction-arena-mark-transparent.png"
+    icon: `${basePath}/brand/auction-arena-mark-transparent.png`,
+    apple: `${basePath}/brand/auction-arena-mark-transparent.png`
   }
 };
 
