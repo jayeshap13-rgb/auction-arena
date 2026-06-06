@@ -2,12 +2,16 @@
 
 import { useSearchParams } from "next/navigation";
 import { LeagueScopedView } from "@/components/LeagueScopedView";
+import { useAuctionStore } from "@/lib/auctionStore";
 
 export function QueryLeagueView({ view }: { view: "spectator" | "owner" | "projector" }) {
   const searchParams = useSearchParams();
+  const { ready, state } = useAuctionStore();
   const leagueId = searchParams.get("leagueId") || "";
 
   if (!leagueId) {
+    const fallbackLeagueId = state.currentLeagueId && state.leagues.some((league) => league.id === state.currentLeagueId) ? state.currentLeagueId : state.leagues[0]?.id;
+    if (ready && fallbackLeagueId) return <LeagueScopedView leagueId={fallbackLeagueId} view={view} />;
     return (
       <div className="glass-card p-6">
         <div className="gold-kicker">League Link Required</div>

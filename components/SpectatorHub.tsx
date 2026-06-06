@@ -40,12 +40,12 @@ export function SpectatorHub() {
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+    <div className="grid gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
       <aside className="space-y-4">
-        <div className="glass-card p-5">
+        <div className="red-card p-5">
           <div className="gold-kicker">Spectator Lobby</div>
-          <h2 className="mt-2 text-2xl font-semibold">All auction leagues</h2>
-          <p className="mt-2 text-sm text-arena-muted">Live leagues open into the detailed auction feed. Upcoming leagues stay visible here until admin starts them.</p>
+          <h2 className="mt-2 text-2xl font-semibold">Choose an auction room</h2>
+          <p className="mt-2 text-sm leading-6 text-arena-muted">Live rooms open the public feed. Upcoming rooms show teams, purse, and tournament status.</p>
           <div className="mt-4 grid grid-cols-2 gap-3">
             <MiniMetric label="Live" value={String(liveLeagues)} />
             <MiniMetric label="Total" value={String(state.leagues.length)} />
@@ -61,7 +61,7 @@ export function SpectatorHub() {
               <button
                 key={league.id}
                 onClick={() => openLeague(league.id)}
-                className={`w-full rounded-2xl border p-4 text-left transition ${active ? "border-arena-red bg-arena-red/15" : "border-white/10 bg-white/5"} hover:border-arena-red/50 hover:bg-white/10`}
+                className={`w-full rounded-2xl border p-4 text-left transition ${active ? "border-arena-red bg-arena-red/15 shadow-redglow" : "border-white/10 bg-white/5"} hover:border-arena-red/50 hover:bg-white/10`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">

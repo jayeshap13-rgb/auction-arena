@@ -8,6 +8,7 @@ import { PlayerManager } from "@/components/PlayerManager";
 import { ReportsPanel } from "@/components/ReportsPanel";
 import { SetupManager } from "@/components/SetupManager";
 import { useAuctionStore } from "@/lib/auctionStore";
+import { makeQrCodeUrl, makeUpiLink, UPI_ID } from "@/lib/payments";
 import { TeamPurse } from "./ui";
 
 type AdminTab = "overview" | "auction" | "setup" | "players" | "reports" | "owners";
@@ -175,6 +176,8 @@ function OwnerApprovals() {
       const league = state.leagues.find((item) => item.id === request.leagueId);
       return league?.createdByAdminId === currentAdminId;
     });
+  const ownerPaymentLink = makeUpiLink(499, "Auction Arena owner login");
+  const ownerPaymentQr = makeQrCodeUrl(ownerPaymentLink, 180);
 
   return (
     <div className="glass-card overflow-hidden">
@@ -192,6 +195,18 @@ function OwnerApprovals() {
               <div className="mt-2 rounded-xl border border-arena-gold/25 bg-arena-gold/10 p-3 text-xs text-arena-muted">
                 Owner login billing: Rs. 499 | Payment: {request.paymentStatus === "paid" ? `Paid${request.paymentReference ? ` | ${request.paymentReference}` : ""}` : "Pending"}
               </div>
+              {request.paymentStatus !== "paid" && (
+                <div className="mt-3 grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:grid-cols-[110px_minmax(0,1fr)]">
+                  <div className="rounded-xl bg-white p-2">
+                    <img src={ownerPaymentQr} alt={`UPI QR for ${UPI_ID}`} className="h-24 w-24 rounded-lg" />
+                  </div>
+                  <div className="text-xs leading-5 text-arena-muted">
+                    <div className="font-semibold text-arena-gold">Scan and pay Rs. 499</div>
+                    <div>UPI: {UPI_ID}</div>
+                    <a href={ownerPaymentLink} className="mt-2 inline-flex rounded-full border border-arena-gold/30 bg-arena-gold/10 px-3 py-1 font-semibold text-arena-gold">Open UPI App</a>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="grid gap-2 sm:min-w-[260px]">
               {request.paymentStatus !== "paid" && (

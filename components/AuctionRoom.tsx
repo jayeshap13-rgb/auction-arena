@@ -4,13 +4,14 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuctionStore } from "@/lib/auctionStore";
 import { BrandLogo } from "@/components/BrandLogo";
+import { LeagueModeLinks } from "@/components/LeagueModeLinks";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { makeQrCodeUrl, makeUpiLink, UPI_ID } from "@/lib/payments";
 import { PlayerCard, TeamPurse } from "./ui";
 
 type Mode = "admin" | "owner" | "spectator" | "projector";
 const FREE_TEAM_LIMIT = 3;
 const ADMIN_EXTRA_TEAM_PRICE = 99;
-const UPI_ID = "auctionarena@upi";
 
 export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true }: { mode?: Mode; ownerTeamId?: string; allowAdminBids?: boolean }) {
   const { state, leagueTeams, leaguePlayers, currentPlayer, currentBid, currentBids, highestBid, leader, actions } = useAuctionStore();
@@ -19,6 +20,7 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
   const [bidAmount, setBidAmount] = useState(currentBid + 10);
   const [showStartPayment, setShowStartPayment] = useState(false);
   const [showStartOptions, setShowStartOptions] = useState(false);
+  const [adminTab, setAdminTab] = useState<"control" | "bid" | "result" | "links">("control");
   const [auctionOrder, setAuctionOrder] = useState<"sequence" | "random">(state.league.auctionOrder || "sequence");
   const [startPaymentReference, setStartPaymentReference] = useState("");
 
@@ -34,7 +36,8 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
   const adminExtraTeams = state.league.managementMode === "admin" ? Math.max(0, leagueTeams.length - FREE_TEAM_LIMIT) : 0;
   const unpaidAdminExtraTeams = Math.max(0, adminExtraTeams - (Number(state.league.paidTeamSlots) || 0));
   const startPaymentAmount = unpaidAdminExtraTeams * ADMIN_EXTRA_TEAM_PRICE;
-  const startUpiLink = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent("Auction Arena")}&am=${startPaymentAmount}&cu=INR&tn=${encodeURIComponent(`Start ${state.league.name}`)}`;
+  const startUpiLink = makeUpiLink(startPaymentAmount, `Start ${state.league.name}`);
+  const startQrCodeUrl = makeQrCodeUrl(startUpiLink);
 
   function submitBid() {
     if (!activeTeam) return;
@@ -184,6 +187,7 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
             </div>
             {mode === "admin" && (
               <>
+                <AdminControlTabs active={adminTab} onChange={setAdminTab} />
                 {showStartPayment && (
                   <div className="mt-5 rounded-2xl border border-arena-red/30 bg-arena-red/10 p-4">
                     <div className="gold-kicker">Payment Required To Start</div>
@@ -191,12 +195,17 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
                     <p className="mt-2 text-sm leading-6 text-arena-muted">
                       This league has {leagueTeams.length} teams. The first {FREE_TEAM_LIMIT} are free, so pay Rs. {startPaymentAmount} for {unpaidAdminExtraTeams} extra team{unpaidAdminExtraTeams === 1 ? "" : "s"} before starting.
                     </p>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+                    <div className="mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+                      <div className="rounded-2xl border border-white/10 bg-white p-3">
+                        <img src={startQrCodeUrl} alt={`UPI QR for ${UPI_ID}`} className="mx-auto h-48 w-48 rounded-xl" />
+                      </div>
                       <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
                         <div className="text-arena-muted">UPI ID</div>
                         <div className="mt-1 font-semibold text-arena-gold">{UPI_ID}</div>
+                        <div className="mt-3 text-arena-muted">Amount</div>
+                        <div className="mt-1 font-semibold text-white">Rs. {startPaymentAmount}</div>
+                        <a href={startUpiLink} className="red-button mt-4 w-full">Open UPI App</a>
                       </div>
-                      <a href={startUpiLink} className="red-button">Open UPI App</a>
                     </div>
                     <input aria-label="Auction start payment reference" className="input-dark mt-3" placeholder="UPI transaction reference" value={startPaymentReference} onChange={(event) => setStartPaymentReference(event.target.value)} />
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -232,18 +241,34 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
                     </div>
                   </div>
                 )}
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <button onClick={startAuction} className="red-button">Start</button>
-                  <button onClick={actions.pause} className="dark-button">Pause</button>
-                  <button onClick={() => actions.resetTimer(24)} className="dark-button">Reset Clock</button>
-                  <button onClick={actions.undoBid} className="dark-button">Undo Bid</button>
-                </div>
+                {adminTab === "control" && (
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <button onClick={startAuction} className="red-button">Start</button>
+                    <button onClick={actions.pause} className="dark-button">Pause</button>
+                    <button onClick={() => actions.resetTimer(24)} className="dark-button">Reset Clock</button>
+                    <button onClick={actions.undoBid} className="dark-button">Undo Bid</button>
+                  </div>
+                )}
+                {adminTab === "result" && (
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <button onClick={() => actions.mark("Sold")} className="red-button">Mark Sold</button>
+                    <button onClick={() => actions.mark("Unsold")} className="dark-button">Mark Unsold</button>
+                    <button onClick={() => actions.nextLot(false)} className="dark-button">Next Player</button>
+                    <button onClick={() => actions.nextLot(true)} className="dark-button">Re-auction Unsold</button>
+                  </div>
+                )}
+                {adminTab === "links" && (
+                  <div className="mt-5 space-y-3">
+                    <LeagueModeLinks leagueId={state.league.id} mode={state.league.managementMode} live={state.league.status === "Live"} showAdmin />
+                    <Link href="/admin" className="dark-button">Open Admin Dashboard</Link>
+                  </div>
+                )}
               </>
             )}
           </div>
         </div>
 
-        {mode !== "spectator" && (mode !== "admin" || allowAdminBids) && (
+        {mode !== "spectator" && (mode !== "admin" || allowAdminBids) && (mode !== "admin" || adminTab === "bid") && (
           <div className="glass-card p-4 sm:p-5">
             <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
               <div>
@@ -292,11 +317,7 @@ export function AuctionRoom({ mode = "admin", ownerTeamId, allowAdminBids = true
         )}
 
         {mode === "admin" && (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <button onClick={() => actions.mark("Sold")} className="red-button">Mark Sold</button>
-            <button onClick={() => actions.mark("Unsold")} className="dark-button">Mark Unsold</button>
-            <button onClick={() => actions.nextLot(false)} className="dark-button">Next Player</button>
-            <button onClick={() => actions.nextLot(true)} className="dark-button">Re-auction Unsold</button>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             <button onClick={actions.resetDemo} className="dark-button">Reset Demo</button>
           </div>
         )}
@@ -404,6 +425,24 @@ function TeamTabs({ teams, selectedTeam, onSelect }: { teams: { id: string; name
             <span className="single-line text-sm font-semibold">{team.name}</span>
           </span>
           <span className="mt-1 block single-line text-xs">Rs. {team.purse - team.spent}L left</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function AdminControlTabs({ active, onChange }: { active: "control" | "bid" | "result" | "links"; onChange: (tab: "control" | "bid" | "result" | "links") => void }) {
+  const tabs: Array<["control" | "bid" | "result" | "links", string]> = [
+    ["control", "Timer"],
+    ["bid", "Bidding"],
+    ["result", "Sold/Unsold"],
+    ["links", "Links"]
+  ];
+  return (
+    <div className="mt-5 grid gap-2 sm:grid-cols-4">
+      {tabs.map(([id, label]) => (
+        <button key={id} onClick={() => onChange(id)} className={`rounded-full border px-3 py-2 text-sm font-semibold ${active === id ? "border-arena-red bg-arena-red/20 text-white" : "border-white/10 bg-white/5 text-arena-muted"}`}>
+          {label}
         </button>
       ))}
     </div>

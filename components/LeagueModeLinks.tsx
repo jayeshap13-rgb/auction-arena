@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { absoluteAppUrl } from "@/lib/routes";
 
 type LeagueModeLinksProps = {
   leagueId: string;
@@ -30,14 +31,9 @@ export function LeagueModeLinks({ leagueId, mode, live, showAdmin = false, compa
     return items.filter((item) => item.show);
   }, [leagueId, mode, showAdmin]);
 
-  function absoluteUrl(path: string) {
-    if (typeof window === "undefined") return path;
-    return `${window.location.origin}${path}`;
-  }
-
   async function copyLink(path: string, id: string) {
     try {
-      await navigator.clipboard.writeText(absoluteUrl(path));
+      await navigator.clipboard.writeText(absoluteAppUrl(path));
       setCopied(id);
       window.setTimeout(() => setCopied(""), 1400);
     } catch {
