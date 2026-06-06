@@ -81,7 +81,7 @@ Recommended flow:
 
 1. Replace localStorage sessions with Supabase Auth.
 2. Replace `lib/auctionStore.ts` persistence with Supabase queries and realtime subscriptions.
-3. Add Vercel API routes for Razorpay order creation and webhook verification.
+3. Move the Razorpay templates from `server/vercel-api/payments` into Vercel API routes and connect them to the checkout UI.
 4. Add PDF and Excel report export from central database data.
 5. Add validation so admins cannot start auctions with missing teams, purse, players, or base prices.
 6. Add audit log writes for bids, undo bids, sold, unsold, timer changes, approvals, and payments.

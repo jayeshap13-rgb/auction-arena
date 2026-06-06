@@ -9,6 +9,7 @@ import { ReportsPanel } from "@/components/ReportsPanel";
 import { SetupManager } from "@/components/SetupManager";
 import { useAuctionStore } from "@/lib/auctionStore";
 import { makeQrCodeUrl, makeUpiLink } from "@/lib/payments";
+import { ProductionStatus } from "@/components/ProductionStatus";
 import { TeamPurse } from "./ui";
 
 type AdminTab = "overview" | "auction" | "setup" | "players" | "reports" | "owners";
@@ -136,6 +137,8 @@ function AdminOverview({ onOpen, canOperate, ownedLeagueCount, isOwnerBiddingLea
             </>
           )}
         </div>
+
+        <ProductionStatus />
 
         {ownedLeagueCount > 0 && (
           <div className="glass-card p-4 sm:p-5">
