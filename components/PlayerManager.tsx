@@ -8,6 +8,7 @@ import { PlayerCard } from "./ui";
 
 export function PlayerManager() {
   const { state, leaguePlayers, currentPlayer, actions } = useAuctionStore();
+  const hasActiveLeague = state.leagues.some((league) => league.id === state.currentLeagueId);
   const [name, setName] = useState("");
   const [role, setRole] = useState("All-rounder");
   const [category, setCategory] = useState("A");
@@ -30,7 +31,7 @@ export function PlayerManager() {
   }
 
   function addPlayer() {
-    if (!state.leagues.some((league) => league.id === state.currentLeagueId)) {
+    if (!hasActiveLeague) {
       setPhotoMessage("Create or select a league before adding players.");
       return;
     }
@@ -54,6 +55,10 @@ export function PlayerManager() {
   }
 
   function addSampleBatch() {
+    if (!hasActiveLeague) {
+      setPhotoMessage("Create or select a league before uploading players.");
+      return;
+    }
     ["Rahil Sharma", "Kian D'Souza", "Amit Rawat"].forEach((player, index) => {
       actions.addPlayer({
         name: player,
@@ -64,17 +69,23 @@ export function PlayerManager() {
         stats: "Bulk upload sample player"
       });
     });
+    setPhotoMessage("Sample players added to this league.");
   }
 
   return (
     <>
       <div className="glass-card mb-5 p-5">
+        {!hasActiveLeague && (
+          <div className="mb-4 rounded-xl border border-arena-gold/25 bg-arena-gold/10 p-3 text-sm text-arena-muted">
+            Select or create a tournament in Setup before adding players.
+          </div>
+        )}
         <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
           <div className="min-w-0">
             <div className="gold-kicker">Player Entry</div>
             <p className="mt-2 text-sm text-arena-muted">Add a player manually or simulate a bulk upload batch.</p>
           </div>
-          <button onClick={addSampleBatch} className="dark-button">Upload Sample Sheet</button>
+          <button onClick={addSampleBatch} disabled={!hasActiveLeague} className={`dark-button ${!hasActiveLeague ? "cursor-not-allowed opacity-50" : ""}`}>Upload Sample Sheet</button>
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-5">
           <input aria-label="Player name" className="input-dark md:col-span-2" placeholder="Player name" value={name} onChange={(event) => setName(event.target.value)} />
@@ -92,7 +103,7 @@ export function PlayerManager() {
             {photoMessage && <span className="mt-2 block text-xs text-arena-muted">{photoMessage}</span>}
           </label>
         </div>
-        <button onClick={addPlayer} className="red-button mt-4">Add Player</button>
+        <button onClick={addPlayer} disabled={!hasActiveLeague || !name.trim()} className={`red-button mt-4 ${!hasActiveLeague || !name.trim() ? "cursor-not-allowed opacity-50" : ""}`}>Add Player</button>
       </div>
       {leaguePlayers.length === 0 && (
         <div className="glass-card p-5 text-sm text-arena-muted">

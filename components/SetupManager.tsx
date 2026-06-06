@@ -51,6 +51,7 @@ export function SetupManager() {
   const [editingTeamId, setEditingTeamId] = useState("");
   const [pendingTeam, setPendingTeam] = useState<{ name: string; owner: string; logo?: string } | null>(null);
   const [teamPaymentState, setTeamPaymentState] = useState<"idle" | "scan">("idle");
+  const [teamPaymentReference, setTeamPaymentReference] = useState("");
 
   useEffect(() => {
     if (!activeLeagueOwned && ownedLeagues[0]) {
@@ -130,15 +131,18 @@ export function SetupManager() {
 
   function confirmTeamPayment() {
     if (!pendingTeam) return;
+    if (teamPaymentReference.trim().length < 4) return;
     const nextPaidSlots = Math.max(Number(state.league.paidTeamSlots) || 0, Math.max(1, currentLeagueTeams.length + 1 - FREE_TEAM_LIMIT));
-    actions.markLeaguePaid(`TEAM-SLOT-${Date.now()}`, nextPaidSlots);
+    actions.markLeaguePaid(teamPaymentReference.trim(), nextPaidSlots);
     commitTeam(pendingTeam.name, pendingTeam.owner, pendingTeam.logo);
     setPendingTeam(null);
+    setTeamPaymentReference("");
     setTeamPaymentState("idle");
   }
 
   function cancelTeamPayment() {
     setPendingTeam(null);
+    setTeamPaymentReference("");
     setTeamPaymentState("idle");
   }
 
@@ -375,6 +379,8 @@ export function SetupManager() {
               <TeamSlotPayment
                 amount={ADMIN_EXTRA_TEAM_PRICE}
                 teamName={pendingTeam.name}
+                reference={teamPaymentReference}
+                onReferenceChange={setTeamPaymentReference}
                 onConfirm={confirmTeamPayment}
                 onCancel={cancelTeamPayment}
               />
@@ -460,9 +466,10 @@ export function SetupManager() {
   );
 }
 
-function TeamSlotPayment({ amount, teamName, onConfirm, onCancel }: { amount: number; teamName: string; onConfirm: () => void; onCancel: () => void }) {
+function TeamSlotPayment({ amount, teamName, reference, onReferenceChange, onConfirm, onCancel }: { amount: number; teamName: string; reference: string; onReferenceChange: (value: string) => void; onConfirm: () => void; onCancel: () => void }) {
   const paymentLink = makeUpiLink(amount, `Auction Arena team slot ${teamName}`);
   const qrCodeUrl = makeQrCodeUrl(paymentLink, 220);
+  const canConfirm = reference.trim().length >= 4;
   return (
     <div className="rounded-2xl border border-arena-gold/30 bg-arena-gold/10 p-4">
       <div className="gold-kicker">Team Slot Payment</div>
@@ -474,10 +481,18 @@ function TeamSlotPayment({ amount, teamName, onConfirm, onCancel }: { amount: nu
         <div className="text-sm leading-6 text-arena-muted">
           <div className="text-2xl font-semibold text-arena-gold">Rs. {amount}</div>
           <p className="mt-2">This team will not be saved until the payment step is completed. Use Pay Now on mobile or scan the QR on another device.</p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <input
+            aria-label="Payment reference"
+            className="input-dark mt-4"
+            placeholder="Enter payment reference"
+            value={reference}
+            onChange={(event) => onReferenceChange(event.target.value)}
+          />
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <a href={paymentLink} className="dark-button w-full">Pay Now</a>
-            <button onClick={onConfirm} className="red-button w-full">Payment Done</button>
+            <button onClick={onConfirm} disabled={!canConfirm} className={`red-button w-full ${!canConfirm ? "cursor-not-allowed opacity-50" : ""}`}>Payment Done</button>
           </div>
+          {!canConfirm && <div className="mt-2 text-xs text-arena-muted">Enter the payment reference to unlock this team slot.</div>}
           <button onClick={onCancel} className="mt-2 w-full text-sm font-semibold text-arena-muted transition hover:text-white">Cancel</button>
         </div>
       </div>
