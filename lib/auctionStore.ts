@@ -392,6 +392,17 @@ export function useAuctionStore() {
         };
       });
     },
+    syncAdminUser(user: AdminUser) {
+      update((current) => {
+        const exists = current.adminUsers.some((admin) => admin.id === user.id || admin.email.toLowerCase() === user.email.toLowerCase());
+        return {
+          ...current,
+          adminUsers: exists
+            ? current.adminUsers.map((admin) => admin.id === user.id || admin.email.toLowerCase() === user.email.toLowerCase() ? { ...admin, ...user } : admin)
+            : [user, ...current.adminUsers]
+        };
+      });
+    },
     addOwnerUser(user: Omit<OwnerUser, "id" | "createdAt" | "status">) {
       update((current) => {
         const exists = current.ownerUsers.some((owner) => owner.email.toLowerCase() === user.email.trim().toLowerCase());
@@ -406,6 +417,17 @@ export function useAuctionStore() {
             status: "Active",
             createdAt: new Date().toLocaleDateString()
           }, ...current.ownerUsers]
+        };
+      });
+    },
+    syncOwnerUser(user: OwnerUser) {
+      update((current) => {
+        const exists = current.ownerUsers.some((owner) => owner.id === user.id || owner.email.toLowerCase() === user.email.toLowerCase());
+        return {
+          ...current,
+          ownerUsers: exists
+            ? current.ownerUsers.map((owner) => owner.id === user.id || owner.email.toLowerCase() === user.email.toLowerCase() ? { ...owner, ...user } : owner)
+            : [user, ...current.ownerUsers]
         };
       });
     },

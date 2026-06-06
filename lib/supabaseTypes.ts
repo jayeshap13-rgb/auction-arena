@@ -69,5 +69,18 @@ export type Database = {
         Update: never;
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: {
+      user_role: UserRole;
+      league_mode: LeagueMode;
+      league_status: LeagueStatus;
+      lot_status: LotStatus;
+      approval_status: ApprovalStatus;
+      payment_status: PaymentStatus;
+      payment_purpose: "admin_extra_team" | "owner_login";
+      payment_provider: "razorpay" | "manual";
+    };
+    CompositeTypes: Record<string, never>;
   };
 };

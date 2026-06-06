@@ -37,6 +37,11 @@ Supabase Auth should own real login. The app needs these roles:
 
 The database schema already includes row-level security for those ownership rules.
 
+The schema also creates a profile automatically after Supabase Auth signup using the signup metadata:
+
+- `name`
+- `role`
+
 ## 4. Pricing Rules
 
 Auction Arena pricing rules for production:

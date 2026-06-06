@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuctionRoom } from "@/components/AuctionRoom";
 import { useAuctionStore } from "@/lib/auctionStore";
+import { useSupabaseAuth } from "@/lib/useSupabaseAuth";
 
 const SESSION_KEY = "bidarena-owner-account-session-v1";
 
 export function OwnerGate({ leagueId: scopedLeagueId }: { leagueId?: string }) {
   const router = useRouter();
   const { state, actions } = useAuctionStore();
+  const auth = useSupabaseAuth("owner");
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,9 +25,36 @@ export function OwnerGate({ leagueId: scopedLeagueId }: { leagueId?: string }) {
     setOwnerId(window.localStorage.getItem(SESSION_KEY) || "");
   }, []);
 
+  useEffect(() => {
+    if (!auth.enabled || !auth.profile) return;
+    const ownerUser = {
+      id: auth.profile.id,
+      name: auth.profile.name,
+      email: auth.profile.email,
+      password: "Supabase auth",
+      status: auth.profile.status,
+      createdAt: new Date().toLocaleDateString()
+    };
+    actions.syncOwnerUser(ownerUser);
+    window.localStorage.setItem(SESSION_KEY, auth.profile.id);
+    setOwnerId(auth.profile.id);
+  }, [actions, auth.enabled, auth.profile]);
+
   const owner = useMemo(
-    () => state.ownerUsers.find((user) => user.id === ownerId && user.status === "Active"),
-    [ownerId, state.ownerUsers]
+    () => {
+      if (auth.enabled && auth.profile?.role === "owner" && auth.profile.status === "Active") {
+        return {
+          id: auth.profile.id,
+          name: auth.profile.name,
+          email: auth.profile.email,
+          password: "Supabase auth",
+          status: auth.profile.status,
+          createdAt: ""
+        };
+      }
+      return state.ownerUsers.find((user) => user.id === ownerId && user.status === "Active");
+    },
+    [auth.enabled, auth.profile, ownerId, state.ownerUsers]
   );
   const visibleLeagues = useMemo(
     () => scopedLeagueId ? state.leagues.filter((league) => league.id === scopedLeagueId) : state.leagues,
@@ -45,12 +74,18 @@ export function OwnerGate({ leagueId: scopedLeagueId }: { leagueId?: string }) {
     });
   }, [visibleLeagues, state.teams]);
 
-  function signup() {
-    const duplicate = state.ownerUsers.some((user) => user.email.toLowerCase() === email.trim().toLowerCase());
+  async function signup() {
     if (!name.trim() || !email.trim() || !password.trim()) {
       setMessage("Fill name, email, and password to create an owner account.");
       return;
     }
+    if (auth.enabled) {
+      const result = await auth.signUp({ name: name.trim(), email: email.trim().toLowerCase(), password, role: "owner" });
+      setMessage(result.message || (result.ok ? "Owner account created. Login with your email and password." : "Could not create owner account."));
+      if (result.ok) setMode("login");
+      return;
+    }
+    const duplicate = state.ownerUsers.some((user) => user.email.toLowerCase() === email.trim().toLowerCase());
     if (duplicate) {
       setMessage("An owner account with this email already exists. Login instead.");
       return;
@@ -60,7 +95,12 @@ export function OwnerGate({ leagueId: scopedLeagueId }: { leagueId?: string }) {
     setMode("login");
   }
 
-  function login() {
+  async function login() {
+    if (auth.enabled) {
+      const result = await auth.signIn(email.trim().toLowerCase(), password);
+      setMessage(result.ok ? "" : result.message);
+      return;
+    }
     const user = state.ownerUsers.find((item) => item.email.toLowerCase() === email.trim().toLowerCase() && item.password === password);
     if (!user) {
       setMessage("Invalid owner email or password.");
@@ -75,7 +115,8 @@ export function OwnerGate({ leagueId: scopedLeagueId }: { leagueId?: string }) {
     setMessage("");
   }
 
-  function logout() {
+  async function logout() {
+    if (auth.enabled) await auth.signOut();
     window.localStorage.removeItem(SESSION_KEY);
     setOwnerId("");
     setActiveEntry(null);
@@ -145,7 +186,9 @@ export function OwnerGate({ leagueId: scopedLeagueId }: { leagueId?: string }) {
         <div className="glass-card p-4 sm:p-6">
           <div className="gold-kicker">Owner Account</div>
           <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">{mode === "login" ? "Login as team owner" : "Create owner account"}</h2>
-          <p className="mt-3 text-sm text-arena-muted">Owners need an account before requesting access to any league.</p>
+          <p className="mt-3 text-sm text-arena-muted">
+            {auth.enabled ? "Secure Supabase login is active. Owners still need admin approval for each league." : "Owners need an account before requesting access to any league."}
+          </p>
           <div className="mt-6 grid gap-4">
             {mode === "signup" && <input aria-label="Owner name" className="input-dark" placeholder="Owner name" value={name} onChange={(event) => setName(event.target.value)} />}
             <input aria-label="Owner email" className="input-dark" placeholder="Owner email" value={email} onChange={(event) => setEmail(event.target.value)} />

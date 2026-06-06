@@ -21,6 +21,29 @@ create table public.profiles (
   created_at timestamptz not null default now()
 );
 
+create or replace function public.create_profile_for_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, role, name, email)
+  values (
+    new.id,
+    coalesce((new.raw_user_meta_data ->> 'role')::public.user_role, 'owner'),
+    coalesce(new.raw_user_meta_data ->> 'name', split_part(new.email, '@', 1), 'Auction User'),
+    new.email
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+create trigger create_profile_after_auth_signup
+after insert on auth.users
+for each row execute function public.create_profile_for_new_user();
+
 create table public.leagues (
   id uuid primary key default gen_random_uuid(),
   created_by uuid not null references public.profiles(id) on delete cascade,
