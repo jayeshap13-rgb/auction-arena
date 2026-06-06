@@ -43,6 +43,7 @@ export function SetupManager() {
   const [owner, setOwner] = useState("");
   const [teamLogo, setTeamLogo] = useState("");
   const [logoMessage, setLogoMessage] = useState("");
+  const [setupMessage, setSetupMessage] = useState("");
   const [newLeagueName, setNewLeagueName] = useState("");
   const [newLeagueSport, setNewLeagueSport] = useState("Cricket");
   const [newLeagueMode, setNewLeagueMode] = useState<"admin" | "owner">("owner");
@@ -147,9 +148,18 @@ export function SetupManager() {
   }
 
   function addLeague() {
-    if (!newLeagueName.trim()) return;
-    const adminId = typeof window !== "undefined" ? window.localStorage.getItem(ADMIN_SESSION_KEY) : "";
-    const admin = state.adminUsers.find((item) => item.id === adminId) || currentAdmin || state.adminUsers[0];
+    if (!newLeagueName.trim()) {
+      setSetupMessage("Enter a tournament name first.");
+      return;
+    }
+    const adminId = typeof window !== "undefined" ? window.localStorage.getItem(ADMIN_SESSION_KEY) || "" : "";
+    if (!adminId && !currentAdmin) {
+      setSetupMessage("Login as admin again before creating a tournament.");
+      return;
+    }
+    const admin = state.adminUsers.find((item) => item.id === adminId) || currentAdmin;
+    const createdByAdminId = admin?.id || adminId;
+    const createdByAdminName = admin?.name || "Auction Admin";
     actions.addLeague({
       name: newLeagueName.trim(),
       sport: newLeagueSport.trim() || "Cricket",
@@ -163,12 +173,13 @@ export function SetupManager() {
       maxTeams: 8,
       maxPlayersPerTeam: 16,
       ownerApprovalRequired: true,
-      createdByAdminId: admin.id,
-      createdByAdminName: admin.name,
+      createdByAdminId,
+      createdByAdminName,
       purse: 1000,
       sponsor: "TITLE SPONSOR"
     });
     setNewLeagueName("");
+    setSetupMessage("Tournament created. Add teams and players next.");
   }
 
   const setupPaymentDue = Math.max(0, extraTeamsDue - paidTeamSlots) * ADMIN_EXTRA_TEAM_PRICE;
@@ -249,6 +260,7 @@ export function SetupManager() {
               </label>
             </div>
             <button onClick={addLeague} className="red-button w-full">Create Tournament</button>
+            {setupMessage && <p className="rounded-xl border border-arena-gold/25 bg-arena-gold/10 p-3 text-sm text-arena-muted">{setupMessage}</p>}
             <p className="text-xs leading-5 text-arena-muted">
               Admin-managed tournaments include 3 teams. Adding the 4th team opens the scan-to-pay step before that team is saved. Owner-bidding login payments are checked during owner approval.
             </p>

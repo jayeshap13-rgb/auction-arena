@@ -100,10 +100,23 @@ export function AdminGate({ children }: { children: ReactNode }) {
       setError("An admin account already exists with this email.");
       return;
     }
-    actions.addAdminUser({ name: name.trim(), email: cleanEmail, password, role: "admin" });
+    const adminId = `admin-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    actions.syncAdminUser({
+      id: adminId,
+      name: name.trim(),
+      email: cleanEmail,
+      password,
+      role: "admin",
+      status: "Active",
+      createdAt: new Date().toLocaleDateString()
+    });
+    window.localStorage.setItem(ADMIN_SESSION_KEY, adminId);
+    window.localStorage.setItem(ADMIN_LAST_ACTIVITY_KEY, String(Date.now()));
+    setSessionId(adminId);
     setMode("login");
-    setError("Admin account created. Login to create your leagues.");
+    setError("");
     setName("");
+    setPassword("");
   }
 
   async function requestReset() {
