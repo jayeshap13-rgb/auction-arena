@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuctionRoom } from "@/components/AuctionRoom";
 import { useAuctionStore } from "@/lib/auctionStore";
+import { withBasePath } from "@/lib/routes";
 import { useSupabaseAuth } from "@/lib/useSupabaseAuth";
 
 const SESSION_KEY = "bidarena-owner-account-session-v1";
@@ -186,7 +187,7 @@ export function OwnerGate({ leagueId: scopedLeagueId }: { leagueId?: string }) {
     }
     actions.selectLeague(leagueId);
     if (!scopedLeagueId) {
-      router.push(`/live/owner?leagueId=${encodeURIComponent(request.leagueId)}`);
+      router.push(withBasePath(`/live/owner?leagueId=${encodeURIComponent(request.leagueId)}`));
       return;
     }
     setActiveEntry({ leagueId, teamId: request.teamId });

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AuctionRoom } from "@/components/AuctionRoom";
 import { LeagueModeLinks } from "@/components/LeagueModeLinks";
 import { useAuctionStore } from "@/lib/auctionStore";
+import { withBasePath } from "@/lib/routes";
 
 export function SpectatorHub() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export function SpectatorHub() {
     if (!league) return;
     actions.selectLeague(leagueId);
     setSelectedLeagueId(leagueId);
-    if (league.status === "Live") router.push(`/live/spectator?leagueId=${encodeURIComponent(leagueId)}`);
+    if (league.status === "Live") router.push(withBasePath(`/live/spectator?leagueId=${encodeURIComponent(leagueId)}`));
   }
 
   return (

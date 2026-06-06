@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { LeagueModeLinks } from "@/components/LeagueModeLinks";
 import { useAuctionStore } from "@/lib/auctionStore";
+import { withBasePath } from "@/lib/routes";
 
 export function AuctionDirectory() {
   const router = useRouter();
@@ -10,7 +11,7 @@ export function AuctionDirectory() {
 
   function openLeague(leagueId: string) {
     actions.selectLeague(leagueId);
-    router.push(`/live/spectator?leagueId=${encodeURIComponent(leagueId)}`);
+    router.push(withBasePath(`/live/spectator?leagueId=${encodeURIComponent(leagueId)}`));
   }
 
   return (

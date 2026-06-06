@@ -7,6 +7,7 @@ import { useSupabaseAuth } from "@/lib/useSupabaseAuth";
 export const ADMIN_SESSION_KEY = "bidarena-admin-session-v1";
 const ADMIN_LAST_ACTIVITY_KEY = "bidarena-admin-last-activity-v1";
 const ADMIN_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+const TRIAL_STORAGE_KEYS = ["auction-arena-trial-state-v3", "auction-arena-trial-state-v2", "auction-arena-trial-state-v1", "auction-arena-state-v7", "auction-arena-state-v6", "bidarena-state"];
 
 export function AdminGate({ children }: { children: ReactNode }) {
   const { state, actions } = useAuctionStore();
@@ -138,6 +139,14 @@ export function AdminGate({ children }: { children: ReactNode }) {
     window.localStorage.removeItem(ADMIN_LAST_ACTIVITY_KEY);
     setSessionId("");
     setPassword("");
+  }
+
+  function resetBrowserTrial() {
+    TRIAL_STORAGE_KEYS.forEach((key) => window.localStorage.removeItem(key));
+    window.localStorage.removeItem(ADMIN_SESSION_KEY);
+    window.localStorage.removeItem(ADMIN_LAST_ACTIVITY_KEY);
+    window.localStorage.removeItem("bidarena-owner-account-session-v1");
+    window.location.reload();
   }
 
   useEffect(() => {
@@ -290,8 +299,11 @@ export function AdminGate({ children }: { children: ReactNode }) {
             {mode === "login" ? "Create a new admin account" : "Back to admin login"}
           </button>
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-arena-muted">
-            Create an admin account, choose admin-managed or owner self-bidding, and the correct billing rule is applied at launch or approval.
+            This browser stores the trial locally. For real multi-user auctions, connect the production backend.
           </div>
+          <button onClick={resetBrowserTrial} className="w-full rounded-xl border border-arena-gold/25 bg-arena-gold/10 px-4 py-3 text-sm font-semibold text-arena-gold transition hover:bg-arena-gold/20">
+            Reset This Browser Trial
+          </button>
         </div>
       </div>
     </div>
